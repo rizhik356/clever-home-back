@@ -9,6 +9,7 @@ import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from 'src/users/users.model';
+import { CreateSiginDto } from './dto/create-sign-in-dto';
 
 @Injectable()
 export class AuthService {
@@ -17,14 +18,15 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async sigIn(userDto: CreateUserDto) {
+  async sigIn(userDto: CreateSiginDto) {
     const user = await this.validateUser(userDto);
     return this.generateToken(user);
   }
 
   async signUp(userDto: CreateUserDto) {
-    const candidate = await this.usersService.getUserByEmail(userDto.email);
-    if (candidate) {
+    const hasEmail = await this.usersService.getUserByEmail(userDto.email);
+    const hasLogin = await this.usersService.getUserByEmail(userDto.email);
+    if (hasEmail && hasLogin) {
       throw new HttpException(
         'Пользователь с таким email уже сущетсвует',
         HttpStatus.BAD_REQUEST,
@@ -43,12 +45,16 @@ export class AuthService {
     return { token: this.jwtService.sign({ email, id }) };
   }
 
-  private async validateUser(userDto: CreateUserDto) {
-    const user = await this.usersService.getUserByEmail(userDto.email);
+  private async validateUser(userDto: CreateSiginDto) {
+    const user =
+      (await this.usersService.getUserByEmail(userDto.login)) ||
+      (await this.usersService.getUserByLogin(userDto.login));
+
     const passwordEquals = await bcrypt.compare(
       userDto.password,
-      userDto.password,
+      user.password,
     );
+
     if (user && passwordEquals) {
       return user;
     }

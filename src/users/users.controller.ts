@@ -1,22 +1,22 @@
-import { Body, Controller, Post, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user-dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { User } from './users.model';
 
 @Controller('users')
 export class UsersController {
   constructor(private userService: UsersService) {}
 
-  @ApiOperation({ summary: 'Создзание пользователя' })
-  @ApiResponse({ status: 200, type: User })
-  @Post()
-  create(@Body() userDto: CreateUserDto) {
-    return this.userService.createUser(userDto);
+  @ApiOperation({ summary: 'Проверка логина' })
+  @ApiResponse({ status: 200 })
+  @Get('login/:login')
+  findLogin(@Param('login') login: string) {
+    return this.userService.isLoginEmpty(login);
   }
 
-  @Get()
-  findOne(@Query('id') id: string) {
-    return this.userService.getUserById(id);
+  @ApiOperation({ summary: 'Проверка email' })
+  @ApiResponse({ status: 200 })
+  @Get('email/:email')
+  findOne(@Param('email') email: string) {
+    return this.userService.isEmailEmpty(email);
   }
 }
