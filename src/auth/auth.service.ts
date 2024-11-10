@@ -18,7 +18,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async sigIn(userDto: CreateSiginDto) {
+  async signIn(userDto: CreateSiginDto) {
     const user = await this.validateUser(userDto);
     return this.generateToken(user);
   }
@@ -45,15 +45,14 @@ export class AuthService {
     return { token: this.jwtService.sign({ email, id }) };
   }
 
-  private async validateUser(userDto: CreateSiginDto) {
+  private async validateUser({ login, password }: CreateSiginDto) {
     const user =
-      (await this.usersService.getUserByEmail(userDto.login)) ||
-      (await this.usersService.getUserByLogin(userDto.login));
+      (await this.usersService.getUserByEmail(login)) ||
+      (await this.usersService.getUserByLogin(login));
 
-    const passwordEquals = await bcrypt.compare(
-      userDto.password,
-      user.password,
-    );
+    const passwordEquals = user
+      ? await bcrypt.compare(password, user?.password)
+      : false;
 
     if (user && passwordEquals) {
       return user;

@@ -16,6 +16,8 @@ const start = async () => {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/api/v1/docs/swagger', app, document);
 
+  app.enableCors();
+
   await app.listen(PORT, () => console.log(`server started at ${PORT}`));
 };
 
