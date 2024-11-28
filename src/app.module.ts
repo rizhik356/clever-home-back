@@ -4,6 +4,7 @@ import { UsersModule } from './users/users.module';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './users/users.model';
 import { AuthModule } from './auth/auth.module';
+import { EmailConfirmation } from './users/email-confirmation.model';
 
 @Module({
   controllers: [],
@@ -20,7 +21,7 @@ import { AuthModule } from './auth/auth.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [User],
+      models: [User, EmailConfirmation],
       autoLoadModels: true,
     }),
     UsersModule,
