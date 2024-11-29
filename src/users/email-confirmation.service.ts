@@ -3,7 +3,6 @@ import { CreateConfirmEmailDto } from './dto/create-confirm-email-dto';
 import { UsersService } from './users.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { EmailConfirmation } from './email-confirmation.model';
-import { User } from './users.model';
 import { createHmac } from 'crypto';
 import * as process from 'node:process';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
@@ -32,7 +31,7 @@ export class EmailConfirmationService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return await this.addConfirmationEmailRow(user);
+    return await this.addConfirmationEmailRow(user.id, email);
   }
 
   generateRecoveryCode(): number {
@@ -51,8 +50,12 @@ export class EmailConfirmationService {
     return await this.emailConfirmationRepository.findOne({ where: { id } });
   }
 
+  async getRowByEmail(email: string) {
+    return await this.emailConfirmationRepository.findOne({ where: { email } });
+  }
+
   async verifyCode(row: EmailConfirmation, code: number) {
-    const currentTime = new Date().getTime(); // Получаем текущее время в миллисекундах
+    const currentTime = new Date().getTime();
     const expirationTime = new Date(row.expires_at).getTime();
 
     const codeTrue = row.confirmation_code === code;
@@ -76,8 +79,10 @@ export class EmailConfirmationService {
     });
   }
 
-  async addConfirmationEmailRow(user: User) {
-    const currentRow = await this.hasRowById(user.id);
+  async addConfirmationEmailRow(userId: number | null, email: string) {
+    const currentRow = userId
+      ? await this.hasRowById(userId)
+      : await this.getRowByEmail(email);
     const recoveryCode = this.generateRecoveryCode();
     const token = this.generateToken(recoveryCode);
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
@@ -87,7 +92,8 @@ export class EmailConfirmationService {
     }
 
     const { id } = await this.emailConfirmationRepository.create({
-      user_id: user.id,
+      user_id: userId,
+      email,
       confirmation_code: recoveryCode,
       is_used: false,
       token: token,

@@ -40,6 +40,11 @@ export class EmailConfirmation extends Model<EmailConfirmation> {
   token: string;
 
   @Column({
+    type: DataType.STRING,
+  })
+  email: string;
+
+  @Column({
     type: DataType.DATE,
   })
   expires_at: string;

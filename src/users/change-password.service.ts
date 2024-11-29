@@ -24,6 +24,7 @@ export class ChangePasswordService {
     if (row) {
       const user = await this.usersService.getUserById(row.user_id);
       await this.changePassword(user, dto.password);
+      await row.destroy();
     }
   }
 }

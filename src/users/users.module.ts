@@ -15,6 +15,6 @@ import { AuthModule } from '../auth/auth.module';
     SequelizeModule.forFeature([User, EmailConfirmation]),
     forwardRef(() => AuthModule),
   ],
-  exports: [UsersService],
+  exports: [UsersService, EmailConfirmationService],
 })
 export class UsersModule {}

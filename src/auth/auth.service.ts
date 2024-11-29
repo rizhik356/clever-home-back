@@ -10,12 +10,15 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from 'src/users/users.model';
 import { CreateSiginDto } from './dto/create-sign-in-dto';
+import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
+import { EmailConfirmationService } from '../users/email-confirmation.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private emailConfirmationService: EmailConfirmationService,
   ) {}
 
   async signIn(userDto: CreateSiginDto) {
@@ -62,5 +65,13 @@ export class AuthService {
       return user;
     }
     throw new UnauthorizedException({ message: 'Неверный логин или пароль' });
+  }
+
+  async confirmEmail({ email }: CreateConfirmEmailDto) {
+    const id = await this.emailConfirmationService.addConfirmationEmailRow(
+      null,
+      email,
+    );
+    return id;
   }
 }
