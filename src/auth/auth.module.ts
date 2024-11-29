@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from 'src/users/users.module';
@@ -9,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
   controllers: [AuthController],
   providers: [AuthService],
   imports: [
-    UsersModule,
+    forwardRef(() => UsersModule),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.${process.env.NODE_ENV}.env`,
@@ -21,5 +21,6 @@ import { ConfigModule } from '@nestjs/config';
       },
     }),
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

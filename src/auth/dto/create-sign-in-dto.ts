@@ -6,3 +6,4 @@ export class CreateSiginDto {
   @ApiProperty({ example: 'password', description: 'Пароль' })
   readonly password: string;
 }
+ 

@@ -23,6 +23,10 @@ export class AuthService {
     return this.generateToken(user);
   }
 
+  async createPassword(password: string) {
+    return await bcrypt.hash(password, 5);
+  }
+
   async signUp(userDto: CreateUserDto) {
     const hasEmail = await this.usersService.getUserByEmail(userDto.email);
     const hasLogin = await this.usersService.getUserByEmail(userDto.email);
@@ -33,10 +37,10 @@ export class AuthService {
       );
     }
 
-    const hasPassword = await bcrypt.hash(userDto.password, 5);
+    const formatPassword = await this.createPassword(userDto.password);
     const user = await this.usersService.createUser({
       ...userDto,
-      password: hasPassword,
+      password: formatPassword,
     });
     return this.generateToken(user);
   }

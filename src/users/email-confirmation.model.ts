@@ -20,13 +20,24 @@ export class EmailConfirmation extends Model<EmailConfirmation> {
   @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,
+    allowNull: true,
   })
-  user_id: number;
+  user_id: number | null;
 
   @Column({
     type: DataType.INTEGER,
   })
   confirmation_code: number;
+
+  @Column({
+    type: DataType.BOOLEAN,
+  })
+  is_used: boolean;
+
+  @Column({
+    type: DataType.STRING,
+  })
+  token: string;
 
   @Column({
     type: DataType.DATE,

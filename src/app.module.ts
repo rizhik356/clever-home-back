@@ -24,7 +24,7 @@ import { EmailConfirmation } from './users/email-confirmation.model';
       models: [User, EmailConfirmation],
       autoLoadModels: true,
     }),
-    UsersModule,
+    UsersModule, 
     AuthModule,
   ],
 })
