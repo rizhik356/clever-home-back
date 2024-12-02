@@ -79,6 +79,14 @@ export class EmailConfirmationService {
     });
   }
 
+  async isVerified(id: number, email: string) {
+    const verifiedRow = await this.emailConfirmationRepository.findOne({
+      where: { id, email, is_used: true },
+    });
+
+    return verifiedRow;
+  }
+
   async addConfirmationEmailRow(userId: number | null, email: string) {
     const currentRow = userId
       ? await this.hasRowById(userId)

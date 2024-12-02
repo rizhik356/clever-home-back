@@ -12,6 +12,7 @@ import { User } from 'src/users/users.model';
 import { CreateSiginDto } from './dto/create-sign-in-dto';
 import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { EmailConfirmationService } from '../users/email-confirmation.service';
+import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
 
 @Injectable()
 export class AuthService {
@@ -32,11 +33,16 @@ export class AuthService {
 
   async signUp(userDto: CreateUserDto) {
     const hasEmail = await this.usersService.getUserByEmail(userDto.email);
-    const hasLogin = await this.usersService.getUserByEmail(userDto.email);
-    if (hasEmail && hasLogin) {
+    const hasLogin = await this.usersService.getUserByLogin(userDto.login);
+    const isVerified = await this.emailConfirmationService.isVerified(
+      userDto.id,
+      userDto.email,
+    );
+
+    if (hasEmail || hasLogin || !isVerified) {
       throw new HttpException(
-        'Пользователь с таким email уже сущетсвует',
-        HttpStatus.BAD_REQUEST,
+        'Произошла ошибка, попробуйте позднее',
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
@@ -73,5 +79,10 @@ export class AuthService {
       email,
     );
     return id;
+  }
+
+  async confirmCode(data: CreateConfirmCodeDto) {
+    const { id } = await this.emailConfirmationService.confirmCode(data);
+    return { id };
   }
 }

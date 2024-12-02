@@ -3,6 +3,7 @@ import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { AuthService } from './auth.service';
 import { CreateSiginDto } from './dto/create-sign-in-dto';
 import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
+import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
 
 @Controller('auth')
 export class AuthController {
@@ -19,7 +20,12 @@ export class AuthController {
   }
 
   @Post('confirm-email')
-  confirmEmail(@Body() EmailDto: CreateConfirmEmailDto) {
-    return this.authService.confirmEmail(EmailDto);
+  confirmEmail(@Body() emailDto: CreateConfirmEmailDto) {
+    return this.authService.confirmEmail(emailDto);
+  }
+
+  @Post('confirm-code')
+  confirmCode(@Body() codeDto: CreateConfirmCodeDto) {
+    return this.authService.confirmCode(codeDto);
   }
 }
