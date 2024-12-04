@@ -4,13 +4,14 @@ import { AuthService } from './auth.service';
 import { UsersModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { MailerCustomModule } from '../mailer/mailer.module';
+import { MailerModule } from '../mailer/mailer.module';
+
+console.log(process.env.EMAIL_PASS);
 
 @Module({
   controllers: [AuthController],
   providers: [AuthService],
   imports: [
-    MailerCustomModule,
     forwardRef(() => UsersModule),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -22,6 +23,7 @@ import { MailerCustomModule } from '../mailer/mailer.module';
         expiresIn: '15m',
       },
     }),
+    MailerModule,
   ],
   exports: [AuthService],
 })

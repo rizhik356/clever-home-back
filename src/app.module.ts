@@ -5,7 +5,9 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './users/users.model';
 import { AuthModule } from './auth/auth.module';
 import { EmailConfirmation } from './users/email-confirmation.model';
-import { MailerCustomModule } from './mailer/mailer.module';
+import { MailerModule } from './mailer/mailer.module';
+
+console.log('11111');
 
 @Module({
   controllers: [],
@@ -27,7 +29,7 @@ import { MailerCustomModule } from './mailer/mailer.module';
     }),
     UsersModule,
     AuthModule,
-    MailerCustomModule,
+    MailerModule,
   ],
 })
 export class AppModule {}

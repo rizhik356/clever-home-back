@@ -1,13 +1,19 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MailerCustomService } from './mailer.service';
-import { MailerModule } from '@nestjs-modules/mailer';
+import { MailerModule as Mailer } from '@nestjs-modules/mailer';
 import { join } from 'path';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   providers: [MailerCustomService],
   imports: [
-    MailerModule.forRoot({
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.${process.env.NODE_ENV}.env`,
+    }),
+    Mailer.forRoot({
       transport: {
         host: 'smtp.mail.ru',
         port: 465,
@@ -18,7 +24,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         },
       },
       defaults: {
-        from: `"Froggy House" <remont-notebook-asus@mail.ru>`,
+        from: `"Froggy House" <${process.env.EMAIL_USER}>`,
       },
       template: {
         dir: join(__dirname, 'templates'),
@@ -28,7 +34,8 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         },
       },
     }),
+    forwardRef(() => AuthModule),
   ],
   exports: [MailerCustomService],
 })
-export class MailerCustomModule {}
+export class MailerModule {}
