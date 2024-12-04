@@ -7,6 +7,7 @@ import { createHmac } from 'crypto';
 import * as process from 'node:process';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
 import { CreateChangePasswordDto } from './dto/create-change-password-dto';
+import { MailerCustomService } from '../mailer/mailer.service';
 
 @Injectable()
 export class EmailConfirmationService {
@@ -14,6 +15,7 @@ export class EmailConfirmationService {
     private usersService: UsersService,
     @InjectModel(EmailConfirmation)
     private emailConfirmationRepository: typeof EmailConfirmation,
+    private mailService: MailerCustomService,
   ) {}
 
   async hasRowById(id: number) {
@@ -31,7 +33,14 @@ export class EmailConfirmationService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return await this.addConfirmationEmailRow(user.id, email);
+    const { id, recoveryCode } = await this.addConfirmationEmailRow(
+      user.id,
+      email,
+    );
+
+    await this.mailService.sendPasswordResetMail(email, recoveryCode);
+
+    return { id };
   }
 
   generateRecoveryCode(): number {
@@ -108,7 +117,7 @@ export class EmailConfirmationService {
       expires_at: expiresAt,
     });
 
-    return { id };
+    return { id, recoveryCode };
   }
 
   async confirmCode({ id, code }: CreateConfirmCodeDto) {

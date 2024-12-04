@@ -7,6 +7,7 @@ import { EmailConfirmation } from './email-confirmation.model';
 import { EmailConfirmationService } from './email-confirmation.service';
 import { ChangePasswordService } from './change-password.service';
 import { AuthModule } from '../auth/auth.module';
+import { MailerCustomModule } from '../mailer/mailer.module';
 
 @Module({
   controllers: [UsersController],
@@ -14,6 +15,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [
     SequelizeModule.forFeature([User, EmailConfirmation]),
     forwardRef(() => AuthModule),
+    MailerCustomModule,
   ],
   exports: [UsersService, EmailConfirmationService],
 })

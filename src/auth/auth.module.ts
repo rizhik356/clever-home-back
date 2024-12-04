@@ -4,11 +4,13 @@ import { AuthService } from './auth.service';
 import { UsersModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { MailerCustomModule } from '../mailer/mailer.module';
 
 @Module({
   controllers: [AuthController],
   providers: [AuthService],
   imports: [
+    MailerCustomModule,
     forwardRef(() => UsersModule),
     ConfigModule.forRoot({
       isGlobal: true,

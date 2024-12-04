@@ -13,6 +13,7 @@ import { CreateSiginDto } from './dto/create-sign-in-dto';
 import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { EmailConfirmationService } from '../users/email-confirmation.service';
 import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
+import { MailerCustomService } from '../mailer/mailer.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailConfirmationService: EmailConfirmationService,
+    private mailerService: MailerCustomService,
   ) {}
 
   async signIn(userDto: CreateSiginDto) {
@@ -74,11 +76,10 @@ export class AuthService {
   }
 
   async confirmEmail({ email }: CreateConfirmEmailDto) {
-    const id = await this.emailConfirmationService.addConfirmationEmailRow(
-      null,
-      email,
-    );
-    return id;
+    const { id, recoveryCode } =
+      await this.emailConfirmationService.addConfirmationEmailRow(null, email);
+    await this.mailerService.sendEmailConfirmation(email, recoveryCode);
+    return { id };
   }
 
   async confirmCode(data: CreateConfirmCodeDto) {
