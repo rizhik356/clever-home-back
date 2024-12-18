@@ -6,8 +6,7 @@ import { User } from './users/users.model';
 import { AuthModule } from './auth/auth.module';
 import { EmailConfirmation } from './users/email-confirmation.model';
 import { MailerModule } from './mailer/mailer.module';
-
-console.log('11111');
+import { DevicesModule } from './devices/devices.module';
 
 @Module({
   controllers: [],
@@ -30,6 +29,7 @@ console.log('11111');
     UsersModule,
     AuthModule,
     MailerModule,
+    DevicesModule,
   ],
 })
 export class AppModule {}

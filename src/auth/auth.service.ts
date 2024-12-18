@@ -14,6 +14,11 @@ import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { EmailConfirmationService } from '../users/email-confirmation.service';
 import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
 import { MailerCustomService } from '../mailer/mailer.service';
+import { randomBytes } from 'crypto';
+import { AccessTokenData, GetUserTokenDataProps, UserTokenData } from './types';
+import { InjectModel } from '@nestjs/sequelize';
+import { AuthTokens } from './auth.model';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class AuthService {
@@ -22,11 +27,12 @@ export class AuthService {
     private jwtService: JwtService,
     private emailConfirmationService: EmailConfirmationService,
     private mailerService: MailerCustomService,
+    @InjectModel(AuthTokens) private authTokens: typeof AuthTokens,
   ) {}
 
   async signIn(userDto: CreateSiginDto) {
     const user = await this.validateUser(userDto);
-    return this.generateToken(user);
+    return await this.addNewTokens(user);
   }
 
   async createPassword(password: string) {
@@ -53,11 +59,89 @@ export class AuthService {
       ...userDto,
       password: formatPassword,
     });
-    return this.generateToken(user);
+    const tokens = this.generateTokens(user);
+    await this.addUserTokenRow({ ...tokens, user_id: user.id });
+
+    return tokens;
   }
 
-  private async generateToken({ email, id }: User) {
-    return { token: this.jwtService.sign({ email, id }) };
+  private makeRefreshExpires() {
+    return new Date(Date.now() + 86400000).toISOString();
+  }
+
+  private generateAccessToken(data: AccessTokenData) {
+    return this.jwtService.sign(data, { expiresIn: '15m' });
+  }
+
+  private generateRefreshToken() {
+    return randomBytes(32).toString('hex');
+  }
+
+  private async getUserTokenRow({
+    access_token,
+    user_id,
+    refresh_token,
+  }: GetUserTokenDataProps) {
+    return await this.authTokens.findOne({
+      where: {
+        access_token,
+        refresh_token,
+        user_id,
+        refresh_token_expires_at: {
+          [Op.gt]: Date.now(), // Проверка, что expires_at больше текущего времени
+        },
+      },
+    });
+  }
+
+  private async updateUserTokenRow(
+    userTokenRow: AuthTokens,
+    data: UserTokenData,
+  ) {
+    await userTokenRow.update(data);
+  }
+
+  private async addUserTokenRow(data: UserTokenData) {
+    await this.authTokens.create({
+      ...data,
+      refresh_token_expires_at: this.makeRefreshExpires(),
+    });
+  }
+
+  private generateTokens({ login, id, email }: User) {
+    const access_token = this.generateAccessToken({ login, id, email });
+    const refresh_token = this.generateRefreshToken();
+
+    return { access_token, refresh_token };
+  }
+
+  private async addNewTokens(user: User) {
+    const userTokenRow = await this.authTokens.findOne({
+      where: { user_id: user.id },
+    });
+    const tokens = this.generateTokens(user);
+
+    await userTokenRow.update({
+      ...tokens,
+      refresh_token_expires_at: this.makeRefreshExpires(),
+    });
+
+    return tokens;
+  }
+
+  private async refreshTokens(data: GetUserTokenDataProps) {
+    const userTokenRow = await this.getUserTokenRow(data);
+    if (userTokenRow) {
+      const user = await this.usersService.getUserById(data.user_id);
+      const tokens = this.generateTokens(user);
+      await this.updateUserTokenRow(userTokenRow, tokens);
+
+      return tokens;
+    }
+    throw new HttpException(
+      'Невалидный refresh_token',
+      HttpStatus.PAYMENT_REQUIRED,
+    );
   }
 
   private async validateUser({ login, password }: CreateSiginDto) {
@@ -76,6 +160,13 @@ export class AuthService {
   }
 
   async confirmEmail({ email }: CreateConfirmEmailDto) {
+    const user = await this.usersService.getUserByEmail(email);
+    if (user) {
+      throw new HttpException(
+        'Пользователь с таким Email уже существует',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
     const { id, recoveryCode } =
       await this.emailConfirmationService.addConfirmationEmailRow(null, email);
     await this.mailerService.sendEmailConfirmation(email, recoveryCode);
