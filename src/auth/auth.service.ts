@@ -129,7 +129,7 @@ export class AuthService {
     return tokens;
   }
 
-  private async refreshTokens(data: GetUserTokenDataProps) {
+  async refreshTokens(data: GetUserTokenDataProps) {
     const userTokenRow = await this.getUserTokenRow(data);
     if (userTokenRow) {
       const user = await this.usersService.getUserById(data.user_id);

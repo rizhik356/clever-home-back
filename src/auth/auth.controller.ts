@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { CreateSiginDto } from './dto/create-sign-in-dto';
 import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
+import { CreateRefreshTokensDto } from './dto/create-refresh-tokens-dto';
 
 @Controller('auth')
 export class AuthController {
@@ -27,5 +28,10 @@ export class AuthController {
   @Post('confirm-code')
   confirmCode(@Body() codeDto: CreateConfirmCodeDto) {
     return this.authService.confirmCode(codeDto);
+  }
+
+  @Post('refresh-token')
+  refreshToken(@Body() tokensDto: CreateRefreshTokensDto) {
+    return this.authService.refreshTokens(tokensDto);
   }
 }
