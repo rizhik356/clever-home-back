@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { EmailConfirmation } from './users/email-confirmation.model';
 import { MailerModule } from './mailer/mailer.module';
 import { DevicesModule } from './devices/devices.module';
+import { RoomsModule } from './rooms/rooms.module';
 
 @Module({
   controllers: [],
@@ -30,6 +31,7 @@ import { DevicesModule } from './devices/devices.module';
     AuthModule,
     MailerModule,
     DevicesModule,
+    RoomsModule,
   ],
 })
 export class AppModule {}

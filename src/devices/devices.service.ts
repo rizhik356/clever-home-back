@@ -5,6 +5,7 @@ import { DeviceTokens } from './device-tokens-model';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
 import { Devices } from './devices.model';
+import { DevicesTypes } from './devices-types.model';
 
 @Injectable()
 export class DevicesService {
@@ -12,6 +13,7 @@ export class DevicesService {
     private usersService: UsersService,
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
     @InjectModel(Devices) private devices: typeof Devices,
+    @InjectModel(DevicesTypes) private devicesTypes: typeof DevicesTypes,
   ) {}
 
   private makeToken(value: number = 16) {
@@ -60,10 +62,15 @@ export class DevicesService {
 
   private makeSerial(type: string) {
     const date = new Date();
-    const day = date.getDate(); // Получаем текущий день
-    const month = date.getMonth() + 1;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
     const token = this.makeToken(4);
 
     return `${type}${day}${month}${token}`;
+  }
+
+  async getDevicesTypes() {
+    const devices = await this.devicesTypes.findAll();
+    return devices.map(({ id, name }) => ({ value: id, label: name }));
   }
 }

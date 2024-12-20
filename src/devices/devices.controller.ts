@@ -15,4 +15,9 @@ export class DevicesController {
   addNewDevice(@Body() newDeviceDto: CreateAddNewDeviceDto) {
     return this.devicesService.addNewDevice(newDeviceDto);
   }
+
+  @Get('/types')
+  getDevicesTypes() {
+    return this.devicesService.getDevicesTypes();
+  }
 }

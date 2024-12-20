@@ -138,10 +138,7 @@ export class AuthService {
 
       return tokens;
     }
-    throw new HttpException(
-      'Невалидный refresh_token',
-      HttpStatus.PAYMENT_REQUIRED,
-    );
+    throw new HttpException('Невалидный refresh_token', HttpStatus.BAD_REQUEST);
   }
 
   private async validateUser({ login, password }: CreateSiginDto) {

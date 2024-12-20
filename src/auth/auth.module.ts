@@ -24,6 +24,6 @@ import { User } from '../users/users.model';
     }),
     MailerModule,
   ],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
