@@ -1,13 +1,6 @@
-import {
-  Column,
-  DataType,
-  ForeignKey,
-  Model,
-  Table,
-} from 'sequelize-typescript';
-import { User } from '../users/users.model';
+import { Column, DataType, Model, Table } from 'sequelize-typescript';
 
-@Table({ tableName: 'devices' })
+@Table({ tableName: 'devices', timestamps: false })
 export class Devices extends Model<Devices> {
   @Column({
     type: DataType.INTEGER,
@@ -17,19 +10,17 @@ export class Devices extends Model<Devices> {
   })
   id: number;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.INTEGER,
-  })
-  user_id: number;
-
   @Column({
     type: DataType.STRING,
+    unique: true,
+    allowNull: false,
   })
   type: string;
 
   @Column({
     type: DataType.STRING,
+    unique: true,
+    allowNull: false,
   })
-  serial: string;
+  name: string;
 }

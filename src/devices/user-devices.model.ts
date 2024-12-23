@@ -9,8 +9,8 @@ import { User } from '../users/users.model';
 import { Devices } from './devices.model';
 import { DefaultRooms } from '../rooms/default-rooms.model';
 
-@Table({ tableName: 'device_tokens' })
-export class DeviceTokens extends Model<DeviceTokens> {
+@Table({ tableName: 'users_devices' })
+export class UserDevices extends Model<UserDevices> {
   @Column({
     type: DataType.INTEGER,
     unique: true,
@@ -26,6 +26,19 @@ export class DeviceTokens extends Model<DeviceTokens> {
   })
   user_id: number;
 
+  @ForeignKey(() => DefaultRooms)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  room_id: number;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  name: string;
+
   @ForeignKey(() => Devices)
   @Column({
     type: DataType.INTEGER,
@@ -37,23 +50,5 @@ export class DeviceTokens extends Model<DeviceTokens> {
     type: DataType.STRING,
     allowNull: false,
   })
-  name: string;
-
-  @ForeignKey(() => DefaultRooms)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  room_id: number;
-
-  @Column({
-    type: DataType.BOOLEAN,
-  })
-  is_used: boolean;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  token: string;
+  serial: string;
 }

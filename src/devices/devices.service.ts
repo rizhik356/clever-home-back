@@ -4,69 +4,87 @@ import { UsersService } from '../users/users.service';
 import { DeviceTokens } from './device-tokens-model';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
+import { UserDevices } from './user-devices.model';
 import { Devices } from './devices.model';
-import { DevicesTypes } from './devices-types.model';
+import { CreateNewGetTokenDto } from './dto/create-new-get-token-dto';
 
 @Injectable()
 export class DevicesService {
   constructor(
     private usersService: UsersService,
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
-    @InjectModel(Devices) private devices: typeof Devices,
-    @InjectModel(DevicesTypes) private devicesTypes: typeof DevicesTypes,
+    @InjectModel(UserDevices) private userDevices: typeof UserDevices,
+    @InjectModel(Devices) private devicesTypes: typeof Devices,
   ) {}
 
   private makeToken(value: number = 16) {
     return randomBytes(value).toString('hex');
   }
 
-  async getToken(id: number) {
-    const user = await this.usersService.getUserById(id);
+  async addUserDevice(getTokenData: CreateNewGetTokenDto) {
+    const user = await this.usersService.getUserById(getTokenData.userId);
     if (!user) {
       throw new HttpException(
         'Произошла ошибка, попробуйте позднее..',
         HttpStatus.BAD_REQUEST,
       );
     }
-    const token = await this.addDeviceToken(id);
+    const token = await this.addDeviceToken(getTokenData);
     return { token };
   }
 
-  private async addDeviceToken(id: number) {
+  private async addDeviceToken(data: CreateNewGetTokenDto) {
+    const { userId, deviceId, name, roomId } = data;
     const token = this.makeToken();
-    await this.deviceTokens.create({ user_id: id, token, is_used: false });
+    await this.deviceTokens.create({
+      user_id: userId,
+      token,
+      device_id: deviceId,
+      name: name,
+      room_id: roomId,
+      is_used: false,
+    });
 
     return token;
   }
 
-  async addNewDevice({ token, id, type }: CreateAddNewDeviceDto) {
-    const deviceTokenRow = await this.verifyDeviceToken({ id, token });
+  async addNewDevice({ token, userId, deviceId }: CreateAddNewDeviceDto) {
+    const deviceTokenRow = await this.verifyDeviceToken({
+      userId,
+      token,
+    });
     if (!deviceTokenRow) {
       throw new HttpException(
         'Некорректный токен или его срок действия истек',
         HttpStatus.BAD_REQUEST,
       );
     }
-    const serial = this.makeSerial(type);
-    const { user_id } = deviceTokenRow;
-    const newDevice = await this.devices.create({ user_id, serial, type });
+    const serial = this.makeSerial(deviceId);
+    const { user_id, room_id, name, device_id } = deviceTokenRow;
+    const newDevice = await this.userDevices.create({
+      user_id,
+      serial,
+      room_id,
+      name,
+      device_id,
+    });
     await deviceTokenRow.update({ is_used: true });
     return { serial, id: newDevice.id };
   }
 
-  private async verifyDeviceToken({ id, token }) {
+  private async verifyDeviceToken({ userId, token }) {
     return await this.deviceTokens.findOne({
-      where: { user_id: id, token, is_used: false },
+      where: { user_id: userId, token, is_used: false },
     });
   }
 
-  private makeSerial(type: string) {
+  private makeSerial(deviceId: number) {
     const date = new Date();
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const token = this.makeToken(4);
 
-    return `${type}${day}${month}${token}`;
+    return `${deviceId}${day}${month}${token}`;
   }
 
   async getDevicesTypes() {
