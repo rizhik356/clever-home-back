@@ -8,10 +8,13 @@ import { User } from '../users/users.model';
 import { UserDevices } from './user-devices.model';
 import { Devices } from './devices.model';
 import { DefaultRooms } from '../rooms/default-rooms.model';
+import { DevicesGateway } from './devices.gateway';
+import { DevicesGatewayService } from './devices-gateway.service';
+import { DevicesGateway as DeviceGatewayModel } from './devices-gateway.model';
 
 @Module({
   controllers: [DevicesController],
-  providers: [DevicesService],
+  providers: [DevicesService, DevicesGateway, DevicesGatewayService],
   imports: [
     SequelizeModule.forFeature([
       DeviceTokens,
@@ -19,6 +22,7 @@ import { DefaultRooms } from '../rooms/default-rooms.model';
       User,
       Devices,
       DefaultRooms,
+      DeviceGatewayModel,
     ]),
     UsersModule,
   ],

@@ -67,6 +67,7 @@ export class DevicesService {
       room_id,
       name,
       device_id,
+      active: false,
     });
     await deviceTokenRow.update({ is_used: true });
     return { serial, id: newDevice.id };
@@ -90,5 +91,13 @@ export class DevicesService {
   async getDevicesTypes() {
     const devices = await this.devicesTypes.findAll();
     return devices.map(({ id, name }) => ({ value: id, label: name }));
+  }
+
+  async verifyDevice(id: number, serial: string) {
+    return await this.userDevices.findOne({ where: { id, serial } });
+  }
+
+  async getDeviceById(id: number) {
+    return await this.userDevices.findOne({ where: { id } });
   }
 }

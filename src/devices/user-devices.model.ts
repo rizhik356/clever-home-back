@@ -51,4 +51,10 @@ export class UserDevices extends Model<UserDevices> {
     allowNull: false,
   })
   serial: string;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+  })
+  active: boolean;
 }
