@@ -8,9 +8,9 @@ import {
 import { UserDevices } from './user-devices.model';
 
 @Table({ tableName: 'devices_gateway' })
-export class DevicesGateway extends Model<DevicesGateway> {
+export class DevicesGatewayModel extends Model<DevicesGatewayModel> {
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.STRING,
     unique: true,
     primaryKey: true,
   })
@@ -18,7 +18,7 @@ export class DevicesGateway extends Model<DevicesGateway> {
 
   @ForeignKey(() => UserDevices)
   @Column({
-    type: DataType.STRING,
+    type: DataType.INTEGER,
     unique: true,
     allowNull: false,
   })

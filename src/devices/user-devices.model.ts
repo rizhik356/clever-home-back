@@ -57,4 +57,10 @@ export class UserDevices extends Model<UserDevices> {
     allowNull: false,
   })
   active: boolean;
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: false,
+  })
+  params: JSON;
 }

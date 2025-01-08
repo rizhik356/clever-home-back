@@ -1,19 +1,33 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { CreateAddNewDeviceDto } from './dto/create-add-new-device-dto';
 import { UsersService } from '../users/users.service';
-import { DeviceTokens } from './device-tokens-model';
+import { DeviceTokens } from './device-tokens.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
 import { UserDevices } from './user-devices.model';
 import { Devices } from './devices.model';
 import { CreateNewGetTokenDto } from './dto/create-new-get-token-dto';
+import { DevicesParams } from './devices-params.model';
+import { CreateNewParamsDto } from './dto/create-new-params-dto';
+import { DevicesGatewayService } from './devices-gateway.service';
+import { DevicesGateway } from './devices.gateway';
 
 @Injectable()
 export class DevicesService {
   constructor(
     private usersService: UsersService,
+    @Inject(forwardRef(() => DevicesGatewayService))
+    private devicesGatewayService: DevicesGatewayService,
+    private devicesGateway: DevicesGateway,
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
     @InjectModel(UserDevices) private userDevices: typeof UserDevices,
+    @InjectModel(DevicesParams) private devicesParams: typeof DevicesParams,
     @InjectModel(Devices) private devicesTypes: typeof Devices,
   ) {}
 
@@ -61,12 +75,14 @@ export class DevicesService {
     }
     const serial = this.makeSerial(deviceId);
     const { user_id, room_id, name, device_id } = deviceTokenRow;
+    const { params } = await this.getDeviceParams(device_id);
     const newDevice = await this.userDevices.create({
       user_id,
       serial,
       room_id,
       name,
       device_id,
+      params,
       active: false,
     });
     await deviceTokenRow.update({ is_used: true });
@@ -99,5 +115,42 @@ export class DevicesService {
 
   async getDeviceById(id: number) {
     return await this.userDevices.findOne({ where: { id } });
+  }
+
+  async getDeviceParams(id: number) {
+    return await this.devicesParams.findOne({ where: { device_id: id } });
+  }
+
+  async getUserDevicesById(id: number) {
+    return await this.userDevices.findAll({ where: { user_id: id } });
+  }
+
+  async getAllUserDevices(userId: number) {
+    const userDevices = await this.getUserDevicesById(userId);
+    if (!userDevices.length) {
+      return [];
+    }
+    return userDevices.map(
+      ({ id, room_id, name, device_id, active, params }) => ({
+        id,
+        roomId: room_id,
+        name,
+        deviceId: device_id,
+        active,
+        params,
+      }),
+    );
+  }
+
+  async setNewDeviceParams({ id, ...rest }: CreateNewParamsDto) {
+    const deviceGateway =
+      await this.devicesGatewayService.getDeviceGatewayByDeviceId(id);
+    const device = await this.getDeviceById(id);
+    const newParams = await this.devicesGateway.setNewParams(
+      deviceGateway.client_id,
+      rest,
+    );
+    await device.update({ params: newParams });
+    return newParams;
   }
 }
