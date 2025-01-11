@@ -63,6 +63,7 @@ export class DevicesService {
   }
 
   async addNewDevice({ token, userId, deviceId }: CreateAddNewDeviceDto) {
+    console.log(token, userId, deviceId, 'args');
     const deviceTokenRow = await this.verifyDeviceToken({
       userId,
       token,
@@ -86,7 +87,7 @@ export class DevicesService {
       active: false,
     });
     await deviceTokenRow.update({ is_used: true });
-    return { serial, id: newDevice.id };
+    return { serial, id: newDevice.id, params };
   }
 
   private async verifyDeviceToken({ userId, token }) {

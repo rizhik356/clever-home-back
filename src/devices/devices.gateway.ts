@@ -31,6 +31,7 @@ export class DevicesGateway
   }
 
   async handleConnection(client: Socket) {
+    console.log(client.id, Date.now());
     const connectionSuccess =
       await this.devicesGatewayService.startConnection(client);
     if (connectionSuccess) {

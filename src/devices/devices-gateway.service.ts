@@ -37,17 +37,20 @@ export class DevicesGatewayService {
     const serial = String(client.handshake.query.serial);
     const clientId = client.id;
 
-    const device = await this.devicesService.verifyDevice(id, serial);
-    const deviceGateway = await this.getDeviceGatewayByDeviceId(id);
-
-    if (!device) {
-      return false;
-    } else if (deviceGateway) {
-      await deviceGateway.destroy();
+    if (id && serial) {
+      const device = await this.devicesService.verifyDevice(id, serial);
+      const deviceGateway = await this.getDeviceGatewayByDeviceId(id);
+      if (!device) {
+        return false;
+      } else if (deviceGateway) {
+        await deviceGateway.destroy();
+      }
+      await this.addDeviceGateWay(id, clientId);
+      await device.update({ active: true });
+      return true;
     }
-    await this.addDeviceGateWay(id, clientId);
-    await device.update({ active: true });
-    return true;
+    console.log('error');
+    return false;
   }
 
   async endConnection(client: Socket) {
