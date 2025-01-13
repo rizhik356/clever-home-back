@@ -8,6 +8,8 @@ import { EmailConfirmation } from './users/email-confirmation.model';
 import { MailerModule } from './mailer/mailer.module';
 import { DevicesModule } from './devices/devices.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   controllers: [],
@@ -26,6 +28,10 @@ import { RoomsModule } from './rooms/rooms.module';
       database: process.env.POSTGRES_DB,
       models: [User, EmailConfirmation],
       autoLoadModels: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'), // Путь к директории со статическими файлами
+      serveRoot: '/static/',
     }),
     UsersModule,
     AuthModule,

@@ -23,4 +23,10 @@ export class Devices extends Model<Devices> {
     allowNull: false,
   })
   name: string;
+
+  @Column({
+    type: DataType.STRING,
+    unique: true,
+  })
+  image: string;
 }

@@ -4,6 +4,7 @@ import {
   ForeignKey,
   Model,
   Table,
+  BelongsTo,
 } from 'sequelize-typescript';
 import { User } from '../users/users.model';
 import { Devices } from './devices.model';
@@ -63,4 +64,10 @@ export class UserDevices extends Model<UserDevices> {
     allowNull: false,
   })
   params: JSON;
+
+  @BelongsTo(() => DefaultRooms)
+  room: DefaultRooms;
+
+  @BelongsTo(() => Devices)
+  device: Devices;
 }

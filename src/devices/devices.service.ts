@@ -17,6 +17,7 @@ import { DevicesParams } from './devices-params.model';
 import { CreateNewParamsDto } from './dto/create-new-params-dto';
 import { DevicesGatewayService } from './devices-gateway.service';
 import { DevicesGateway } from './devices.gateway';
+import { DefaultRooms } from '../rooms/default-rooms.model';
 
 @Injectable()
 export class DevicesService {
@@ -29,6 +30,7 @@ export class DevicesService {
     @InjectModel(UserDevices) private userDevices: typeof UserDevices,
     @InjectModel(DevicesParams) private devicesParams: typeof DevicesParams,
     @InjectModel(Devices) private devicesTypes: typeof Devices,
+    @InjectModel(DefaultRooms) private defaultRooms: typeof DefaultRooms,
   ) {}
 
   private makeToken(value: number = 16) {
@@ -122,8 +124,17 @@ export class DevicesService {
     return await this.devicesParams.findOne({ where: { device_id: id } });
   }
 
-  async getUserDevicesById(id: number) {
-    return await this.userDevices.findAll({ where: { user_id: id } });
+  async getUserDevicesById(userId: number) {
+    return await UserDevices.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: DefaultRooms,
+          attributes: ['room_name'], // Указываем, что хотим получить только поле name
+        },
+        { model: Devices, attributes: ['image'] },
+      ],
+    });
   }
 
   async getAllUserDevices(userId: number) {
@@ -132,13 +143,15 @@ export class DevicesService {
       return [];
     }
     return userDevices.map(
-      ({ id, room_id, name, device_id, active, params }) => ({
+      ({ id, room_id, name, device_id, active, params, room, device }) => ({
         id,
         roomId: room_id,
         name,
         deviceId: device_id,
         active,
         params,
+        roomName: room ? room.room_name : null,
+        image: device ? device.image : null,
       }),
     );
   }
