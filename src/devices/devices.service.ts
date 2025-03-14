@@ -65,7 +65,6 @@ export class DevicesService {
   }
 
   async addNewDevice({ token, userId, deviceId }: CreateAddNewDeviceDto) {
-    console.log(token, userId, deviceId, 'args');
     const deviceTokenRow = await this.verifyDeviceToken({
       userId,
       token,
@@ -132,7 +131,7 @@ export class DevicesService {
           model: DefaultRooms,
           attributes: ['room_name'], // Указываем, что хотим получить только поле name
         },
-        { model: Devices, attributes: ['image'] },
+        { model: Devices, attributes: ['image', 'type'] },
       ],
     });
   }
@@ -143,11 +142,11 @@ export class DevicesService {
       return [];
     }
     return userDevices.map(
-      ({ id, room_id, name, device_id, active, params, room, device }) => ({
+      ({ id, room_id, name, active, params, room, device }) => ({
         id,
         roomId: room_id,
         name,
-        deviceId: device_id,
+        deviceType: device.type,
         active,
         params,
         roomName: room ? room.room_name : null,

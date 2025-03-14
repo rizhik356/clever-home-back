@@ -49,7 +49,6 @@ export class UserDevices extends Model<UserDevices> {
 
   @Column({
     type: DataType.STRING,
-    allowNull: false,
   })
   serial: string;
 
