@@ -49,7 +49,6 @@ export class DevicesGatewayService {
       await device.update({ active: true });
       return true;
     }
-    console.log('error');
     return false;
   }
 

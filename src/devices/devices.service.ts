@@ -18,6 +18,8 @@ import { CreateNewParamsDto } from './dto/create-new-params-dto';
 import { DevicesGatewayService } from './devices-gateway.service';
 import { DevicesGateway } from './devices.gateway';
 import { DefaultRooms } from '../rooms/default-rooms.model';
+import { HubOutputs } from './hub-outputs.model';
+import { HubOutputsService } from './hub-outputs.service';
 
 @Injectable()
 export class DevicesService {
@@ -25,12 +27,15 @@ export class DevicesService {
     private usersService: UsersService,
     @Inject(forwardRef(() => DevicesGatewayService))
     private devicesGatewayService: DevicesGatewayService,
+    @Inject(forwardRef(() => HubOutputsService))
+    private hubOutputsService: HubOutputsService,
     private devicesGateway: DevicesGateway,
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
     @InjectModel(UserDevices) private userDevices: typeof UserDevices,
     @InjectModel(DevicesParams) private devicesParams: typeof DevicesParams,
     @InjectModel(Devices) private devicesTypes: typeof Devices,
     @InjectModel(DefaultRooms) private defaultRooms: typeof DefaultRooms,
+    @InjectModel(HubOutputs) private hubOutputs: typeof HubOutputs,
   ) {}
 
   private makeToken(value: number = 16) {
@@ -124,34 +129,62 @@ export class DevicesService {
   }
 
   async getUserDevicesById(userId: number) {
+    const defaultRoomAttributes = ['room_name'];
+    const deviceAttributes = ['image', 'type'];
+
     return await UserDevices.findAll({
       where: { user_id: userId },
       include: [
         {
           model: DefaultRooms,
-          attributes: ['room_name'], // Указываем, что хотим получить только поле name
+          attributes: defaultRoomAttributes,
         },
-        { model: Devices, attributes: ['image', 'type'] },
+        { model: Devices, attributes: deviceAttributes },
+        {
+          model: HubOutputs,
+          include: [
+            {
+              model: DefaultRooms,
+              attributes: defaultRoomAttributes,
+            },
+            { model: Devices, attributes: deviceAttributes },
+          ],
+        },
       ],
     });
   }
 
   async getAllUserDevices(userId: number) {
     const userDevices = await this.getUserDevicesById(userId);
+
     if (!userDevices.length) {
       return [];
     }
-    return userDevices.map(
-      ({ id, room_id, name, active, params, room, device }) => ({
-        id,
-        roomId: room_id,
-        name,
-        deviceType: device.type,
-        active,
-        params,
-        roomName: room ? room.room_name : null,
-        image: device ? device.image : null,
-      }),
+
+    return userDevices.flatMap(
+      ({ id, room_id, name, active, params, room, device, hubOutputs }) => {
+        const formatDeviceRow = {
+          id,
+          roomId: room_id,
+          name,
+          deviceType: device.type,
+          active,
+          params,
+          roomName: room ? room.room_name : null,
+          image: device ? device.image : null,
+        };
+
+        const hubOutputRows =
+          hubOutputs && hubOutputs.length
+            ? this.hubOutputsService.formatHubOutputs(
+                active,
+                params,
+                hubOutputs,
+              )
+            : [];
+
+        return [formatDeviceRow, ...hubOutputRows];
+      },
     );
   }
 

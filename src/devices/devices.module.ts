@@ -14,10 +14,17 @@ import { DevicesGatewayModel } from './devices-gateway.model';
 import { ConfigModule } from '@nestjs/config';
 import { DevicesParams } from './devices-params.model';
 import { AuthModule } from '../auth/auth.module';
+import { HubOutputs } from './hub-outputs.model';
+import { HubOutputsService } from './hub-outputs.service';
 
 @Module({
   controllers: [DevicesController],
-  providers: [DevicesService, DevicesGateway, DevicesGatewayService],
+  providers: [
+    DevicesService,
+    DevicesGateway,
+    DevicesGatewayService,
+    HubOutputsService,
+  ],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -31,6 +38,7 @@ import { AuthModule } from '../auth/auth.module';
       DefaultRooms,
       DevicesGatewayModel,
       DevicesParams,
+      HubOutputs,
     ]),
     UsersModule,
     AuthModule,

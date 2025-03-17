@@ -12,7 +12,6 @@ export class DevicesParams extends Model<DevicesParams> {
   @Column({
     type: DataType.INTEGER,
     unique: true,
-    autoIncrement: true,
     primaryKey: true,
   })
   id: number;

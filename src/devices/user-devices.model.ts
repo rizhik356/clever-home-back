@@ -5,10 +5,12 @@ import {
   Model,
   Table,
   BelongsTo,
+  HasMany,
 } from 'sequelize-typescript';
 import { User } from '../users/users.model';
 import { Devices } from './devices.model';
 import { DefaultRooms } from '../rooms/default-rooms.model';
+import { HubOutputs } from './hub-outputs.model';
 
 @Table({ tableName: 'users_devices' })
 export class UserDevices extends Model<UserDevices> {
@@ -69,4 +71,7 @@ export class UserDevices extends Model<UserDevices> {
 
   @BelongsTo(() => Devices)
   device: Devices;
+
+  @HasMany(() => HubOutputs)
+  hubOutputs: HubOutputs[];
 }
