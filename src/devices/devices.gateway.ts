@@ -31,7 +31,6 @@ export class DevicesGateway
   }
 
   async handleConnection(client: Socket) {
-    console.log(client.id, Date.now());
     const connectionSuccess =
       await this.devicesGatewayService.startConnection(client);
     if (connectionSuccess) {
@@ -76,9 +75,7 @@ export class DevicesGateway
   }
 
   async setNewParams(clientId: string, params: DeviceParams): Promise<JSON> {
-    //   console.log(clientId);
     const client = this.getClientById(clientId);
-    //   console.log(client);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, UseGuards, Param } from '@nestjs/common';
+import { Body, Controller, Post, Get, UseGuards, Req } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateAddNewDeviceDto } from './dto/create-add-new-device-dto';
 import { CreateNewGetTokenDto } from './dto/create-new-get-token-dto';
@@ -11,8 +11,11 @@ export class DevicesController {
 
   @UseGuards(JwtAuthGuard)
   @Post('add-user-device')
-  getToken(@Body() getTokenDto: CreateNewGetTokenDto) {
-    return this.devicesService.addUserDevice(getTokenDto);
+  getToken(@Req() req: any, @Body() getTokenDto: CreateNewGetTokenDto) {
+    return this.devicesService.addUserDevice({
+      ...getTokenDto,
+      userId: req?.user?.id,
+    });
   }
 
   @Post('add-new-device')
@@ -27,9 +30,9 @@ export class DevicesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  getDevices(@Param('id') id: string) {
-    return this.devicesService.getAllUserDevices(Number(id));
+  @Get('/')
+  getDevices(@Req() req: any) {
+    return this.devicesService.getAllUserDevices(req?.user?.id);
   }
 
   @UseGuards(JwtAuthGuard)

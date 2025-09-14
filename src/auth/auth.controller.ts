@@ -5,6 +5,7 @@ import { CreateSiginDto } from './dto/create-sign-in-dto';
 import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
 import { CreateRefreshTokensDto } from './dto/create-refresh-tokens-dto';
+import { UserId } from './user-id.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -31,7 +32,10 @@ export class AuthController {
   }
 
   @Post('refresh-token')
-  refreshToken(@Body() tokensDto: CreateRefreshTokensDto) {
-    return this.authService.refreshTokens(tokensDto);
+  refreshToken(
+    @UserId() user_id: number,
+    @Body() tokensDto: CreateRefreshTokensDto,
+  ) {
+    return this.authService.refreshTokens({ ...tokensDto, user_id });
   }
 }

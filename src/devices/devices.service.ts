@@ -1,9 +1,9 @@
 import {
+  forwardRef,
   HttpException,
   HttpStatus,
-  Injectable,
   Inject,
-  forwardRef,
+  Injectable,
 } from '@nestjs/common';
 import { CreateAddNewDeviceDto } from './dto/create-add-new-device-dto';
 import { UsersService } from '../users/users.service';
@@ -20,6 +20,7 @@ import { DevicesGateway } from './devices.gateway';
 import { DefaultRooms } from '../rooms/default-rooms.model';
 import { HubOutputs } from './hub-outputs.model';
 import { HubOutputsService } from './hub-outputs.service';
+import { DeviceParams } from './types';
 
 @Injectable()
 export class DevicesService {
@@ -161,7 +162,7 @@ export class DevicesService {
       return [];
     }
 
-    return userDevices.flatMap(
+    return userDevices.map(
       ({ id, room_id, name, active, params, room, device, hubOutputs }) => {
         const formatDeviceRow = {
           id,
@@ -183,15 +184,39 @@ export class DevicesService {
               )
             : [];
 
-        return [formatDeviceRow, ...hubOutputRows];
+        return !hubOutputRows?.length
+          ? formatDeviceRow
+          : { ...formatDeviceRow, children: hubOutputRows };
       },
     );
   }
 
-  async setNewDeviceParams({ id, ...rest }: CreateNewParamsDto) {
+  makeChildrenFormatParams(params: DeviceParams, output: number) {
+    const entries = Object.entries(params);
+    const formatEntries = entries.map(([key, value]) => {
+      return [`${key}${output}`, value];
+    });
+    return Object.fromEntries(formatEntries);
+  }
+
+  async setNewDeviceParams({ id, parentId, ...rest }: CreateNewParamsDto) {
+    const currentId = parentId || id;
+
     const deviceGateway =
-      await this.devicesGatewayService.getDeviceGatewayByDeviceId(id);
-    const device = await this.getDeviceById(id);
+      await this.devicesGatewayService.getDeviceGatewayByDeviceId(currentId);
+    const device = await this.getDeviceById(currentId);
+
+    if (parentId) {
+      const { output } = await this.hubOutputsService.getHubOutputById(id);
+      const params = this.makeChildrenFormatParams(rest, output);
+      const newParams = await this.devicesGateway.setNewParams(
+        deviceGateway.client_id,
+        params,
+      );
+      await device.update({ params: newParams });
+      return newParams;
+    }
+
     const newParams = await this.devicesGateway.setNewParams(
       deviceGateway.client_id,
       rest,

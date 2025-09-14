@@ -142,9 +142,11 @@ export class AuthService {
   }
 
   private async validateUser({ login, password }: CreateSiginDto) {
+    const formatLogin = login.trim().toLowerCase();
+
     const user =
-      (await this.usersService.getUserByEmail(login)) ||
-      (await this.usersService.getUserByLogin(login));
+      (await this.usersService.getUserByEmail(formatLogin)) ||
+      (await this.usersService.getUserByLogin(formatLogin));
 
     const passwordEquals = user
       ? await bcrypt.compare(password, user?.password)
