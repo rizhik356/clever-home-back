@@ -24,6 +24,8 @@ import { DeviceParams } from './types';
 
 @Injectable()
 export class DevicesService {
+  private readonly defaultRoomAttributes: string[];
+  private readonly deviceAttributes: string[];
   constructor(
     private usersService: UsersService,
     @Inject(forwardRef(() => DevicesGatewayService))
@@ -37,7 +39,10 @@ export class DevicesService {
     @InjectModel(Devices) private devicesTypes: typeof Devices,
     @InjectModel(DefaultRooms) private defaultRooms: typeof DefaultRooms,
     @InjectModel(HubOutputs) private hubOutputs: typeof HubOutputs,
-  ) {}
+  ) {
+    this.defaultRoomAttributes = ['room_name'];
+    this.deviceAttributes = ['image', 'type', 'id'];
+  }
 
   private makeToken(value: number = 16) {
     return randomBytes(value).toString('hex');
@@ -129,30 +134,55 @@ export class DevicesService {
     return await this.devicesParams.findOne({ where: { device_id: id } });
   }
 
-  async getUserDevicesById(userId: number) {
-    const defaultRoomAttributes = ['room_name'];
-    const deviceAttributes = ['image', 'type'];
+  private getDeviceIncludes(id?: number) {
+    console.log(id);
+    return [
+      {
+        model: DefaultRooms,
+        attributes: this.defaultRoomAttributes,
+      },
+      {
+        model: Devices,
+        attributes: this.deviceAttributes,
+      },
+      {
+        model: HubOutputs,
+        where: id ? { id } : {},
+        required: !!id,
+        include: [
+          {
+            model: DefaultRooms,
+            attributes: this.defaultRoomAttributes,
+          },
+          {
+            model: Devices,
+            attributes: this.deviceAttributes,
+          },
+        ],
+      },
+    ];
+  }
 
-    return await UserDevices.findAll({
-      where: { user_id: userId },
-      include: [
-        {
-          model: DefaultRooms,
-          attributes: defaultRoomAttributes,
-        },
-        { model: Devices, attributes: deviceAttributes },
-        {
-          model: HubOutputs,
-          include: [
-            {
-              model: DefaultRooms,
-              attributes: defaultRoomAttributes,
-            },
-            { model: Devices, attributes: deviceAttributes },
-          ],
-        },
-      ],
-    });
+  async getUserDevicesById(userId: number) {
+    try {
+      return await UserDevices.findAll({
+        where: { user_id: userId },
+        include: this.getDeviceIncludes(),
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+  }
+
+  async getDeviceFullById(id: number, outputId?: number) {
+    try {
+      return await this.userDevices.findOne({
+        where: { id },
+        include: this.getDeviceIncludes(outputId),
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.SERVICE_UNAVAILABLE);
+    }
   }
 
   async getAllUserDevices(userId: number) {
@@ -169,6 +199,7 @@ export class DevicesService {
           roomId: room_id,
           name,
           deviceType: device.type,
+          deviceId: device.id,
           active,
           params,
           roomName: room ? room.room_name : null,
@@ -207,14 +238,19 @@ export class DevicesService {
     const device = await this.getDeviceById(currentId);
 
     if (parentId) {
-      const { output } = await this.hubOutputsService.getHubOutputById(id);
-      const params = this.makeChildrenFormatParams(rest, output);
+      const outputRow = await this.hubOutputsService.getHubOutputById(id);
+      const params = this.makeChildrenFormatParams(rest, outputRow.output);
       const newParams = await this.devicesGateway.setNewParams(
         deviceGateway.client_id,
         params,
       );
       await device.update({ params: newParams });
-      return newParams;
+      const updatedParent = await this.getDeviceFullById(currentId, id);
+      return this.hubOutputsService.formatHubOutputs(
+        updatedParent.active,
+        updatedParent.params,
+        updatedParent.hubOutputs,
+      )[0];
     }
 
     const newParams = await this.devicesGateway.setNewParams(
@@ -222,6 +258,6 @@ export class DevicesService {
       rest,
     );
     await device.update({ params: newParams });
-    return newParams;
+    return device;
   }
 }

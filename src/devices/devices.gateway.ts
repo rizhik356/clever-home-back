@@ -81,15 +81,15 @@ export class DevicesGateway
         reject(
           new HttpException(
             'Устройство недоступно, поробуйте поздне...',
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.SERVICE_UNAVAILABLE,
           ),
         );
       }, 30000);
 
       client.emit('newParams', params);
 
-      client.once('newParams', (response: string) => {
-        resolve(JSON.parse(response));
+      client.once('newParams', (response) => {
+        resolve(response);
         clearTimeout(timer);
       });
     });

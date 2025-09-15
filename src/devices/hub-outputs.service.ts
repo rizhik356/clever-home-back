@@ -1,14 +1,26 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { HubOutputs } from './hub-outputs.model';
 import { InjectModel } from '@nestjs/sequelize';
 import {
   CreateHubOutputsDTO,
   CreatePatchHubOutputsDTO,
 } from './dto/create-hub-outputs-dto';
+import { DevicesService } from './devices.service';
 
 @Injectable()
 export class HubOutputsService {
-  constructor(@InjectModel(HubOutputs) private hubOutputs: typeof HubOutputs) {}
+  constructor(
+    @InjectModel(HubOutputs) private hubOutputs: typeof HubOutputs,
+    @Inject(forwardRef(() => DevicesService))
+    private devicesService: DevicesService,
+  ) {}
+
   formatHubOutputs(
     active: boolean,
     params: JSON,
@@ -23,6 +35,7 @@ export class HubOutputsService {
           output,
           roomId: room_id,
           deviceType: device.type,
+          deviceId: device.id,
           roomName: room ? room.room_name : null,
           image: device ? device.image : null,
           active,
@@ -37,40 +50,56 @@ export class HubOutputsService {
     try {
       return await this.hubOutputs.findOne({ where: { id } });
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 
-  async addNewOutput({ parentId, ...rest }: CreateHubOutputsDTO) {
+  async getAllHubs(id: number) {
+    const parentDevice = await this.devicesService.getDeviceFullById(id);
+    return this.formatHubOutputs(
+      parentDevice.active,
+      parentDevice.params,
+      parentDevice.hubOutputs,
+    );
+  }
+
+  async addNewOutput({
+    parentId,
+    roomId,
+    deviceId,
+    ...rest
+  }: CreateHubOutputsDTO) {
     try {
-      const newHubOutput = await this.hubOutputs.create({
+      await this.hubOutputs.create({
         hub_id: parentId,
+        room_id: roomId,
+        device_id: deviceId,
         ...rest,
       });
-      return newHubOutput.id;
+      return await this.getAllHubs(parentId);
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 
   async patchHubOutput({ id, ...rest }: CreatePatchHubOutputsDTO) {
     try {
-      return await this.hubOutputs.update(rest, {
-        where: {
-          id,
-        },
-      });
+      const record = await this.hubOutputs.findOne({ where: { id } });
+      await record.update(rest);
+      return this.getAllHubs(record.hub_id);
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 
   async deleteHubOutput(id: string) {
+    const formatId = Number(id);
     try {
-      await this.hubOutputs.destroy({ where: { id: Number(id) } });
-      return;
+      const record = await this.hubOutputs.findOne({ where: { id: formatId } });
+      await record.destroy();
+      return await this.getAllHubs(record.hub_id);
     } catch (error) {
-      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 }

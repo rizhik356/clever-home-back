@@ -16,9 +16,10 @@ import { DevicesParams } from './devices-params.model';
 import { AuthModule } from '../auth/auth.module';
 import { HubOutputs } from './hub-outputs.model';
 import { HubOutputsService } from './hub-outputs.service';
+import { HubOutputsController } from './hub-outputs.controller';
 
 @Module({
-  controllers: [DevicesController],
+  controllers: [DevicesController, HubOutputsController],
   providers: [
     DevicesService,
     DevicesGateway,
