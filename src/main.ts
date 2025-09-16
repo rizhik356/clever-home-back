@@ -22,6 +22,8 @@ const start = async () => {
     credentials: true,
   });
 
+  app.setGlobalPrefix('api');
+
   await app.listen(PORT, () => console.log(`server started at ${PORT}`));
 };
 
