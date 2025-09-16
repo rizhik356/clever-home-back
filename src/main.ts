@@ -16,8 +16,13 @@ const start = async () => {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/api/v1/docs/swagger', app, document);
 
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? ['http://82.202.169.113:7070']
+      : ['*'];
+
   app.enableCors({
-    origin: '*', // Разрешает доступ с любого источника
+    origin: allowedOrigins, // Разрешает доступ с любого источника
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
