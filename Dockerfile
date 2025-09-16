@@ -1,9 +1,15 @@
-FROM node:16
+FROM node:18-alpine
+
+WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install
+RUN npm ci --only=production
 
 COPY . .
 
-CMD ["npm", "run", "start:prod"]
+RUN npm install pm2 -g
+
+RUN npm cache clean --force && \
+    rm -rf /var/cache/apk/*
+
+CMD ["pm2-runtime", "dist/main.ts", "--name", "api"]
