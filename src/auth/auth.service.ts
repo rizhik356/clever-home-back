@@ -19,6 +19,7 @@ import { AccessTokenData, GetUserTokenDataProps, UserTokenData } from './types';
 import { InjectModel } from '@nestjs/sequelize';
 import { AuthTokens } from './auth.model';
 import { Op } from 'sequelize';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -39,15 +40,11 @@ export class AuthService {
     return await bcrypt.hash(password, 5);
   }
 
-  async signUp(userDto: CreateUserDto) {
+  async signUp(userDto: CreateUserDto, res: Response) {
     const hasEmail = await this.usersService.getUserByEmail(userDto.email);
     const hasLogin = await this.usersService.getUserByLogin(userDto.login);
-    const isVerified = await this.emailConfirmationService.isVerified(
-      userDto.id,
-      userDto.email,
-    );
 
-    if (hasEmail || hasLogin || !isVerified) {
+    if (hasEmail || hasLogin) {
       throw new HttpException(
         'Произошла ошибка, попробуйте позднее',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -59,10 +56,23 @@ export class AuthService {
       ...userDto,
       password: formatPassword,
     });
-    const tokens = this.generateTokens(user);
-    await this.addUserTokenRow({ ...tokens, user_id: user.id });
 
-    return tokens;
+    const { id, recoveryCode } =
+      await this.emailConfirmationService.addConfirmationEmailRow(
+        user.id,
+        user.email,
+        true,
+      );
+
+    await this.mailerService.sendEmailConfirmation(user.email, recoveryCode);
+    res.cookie('emailConfirmationId', id, {
+      maxAge: 3600000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    return;
   }
 
   private makeRefreshExpires() {
@@ -102,10 +112,14 @@ export class AuthService {
   }
 
   private async addUserTokenRow(data: UserTokenData) {
-    await this.authTokens.create({
-      ...data,
-      refresh_token_expires_at: this.makeRefreshExpires(),
-    });
+    try {
+      await this.authTokens.create({
+        ...data,
+        refresh_token_expires_at: this.makeRefreshExpires(),
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.METHOD_NOT_ALLOWED);
+    }
   }
 
   private generateTokens({ login, id, email }: User) {
@@ -153,6 +167,14 @@ export class AuthService {
       : false;
 
     if (user && passwordEquals) {
+      const hasConfirmEmail =
+        await this.emailConfirmationService.getRowByUserId(user.id);
+      if (!hasConfirmEmail.is_used) {
+        throw new HttpException(
+          'Email не подтвержден',
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
       return user;
     }
     throw new UnauthorizedException({ message: 'Неверный логин или пароль' });
@@ -163,17 +185,29 @@ export class AuthService {
     if (user) {
       throw new HttpException(
         'Пользователь с таким Email уже существует',
-        HttpStatus.SERVICE_UNAVAILABLE,
+        HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
     const { id, recoveryCode } =
-      await this.emailConfirmationService.addConfirmationEmailRow(null, email);
+      await this.emailConfirmationService.addConfirmationEmailRow(
+        null,
+        email,
+        false,
+      );
     await this.mailerService.sendEmailConfirmation(email, recoveryCode);
     return { id };
   }
 
-  async confirmCode(data: CreateConfirmCodeDto) {
-    const { id } = await this.emailConfirmationService.confirmCode(data);
-    return { id };
+  async confirmCode(data: CreateConfirmCodeDto, id: number) {
+    const { userId } = await this.emailConfirmationService.confirmCode(
+      data,
+      id,
+    );
+    const user = await this.usersService.getUserById(userId);
+    if (user) {
+      const tokens = this.generateTokens(user);
+      await this.addUserTokenRow({ ...tokens, user_id: user.id });
+      return tokens;
+    }
   }
 }

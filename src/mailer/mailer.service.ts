@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
@@ -11,23 +11,29 @@ export class MailerCustomService {
     template: string,
     context: object,
   ) {
-    await this.mailerService.sendMail({
-      to: email,
-      subject,
-      template: template,
-      context,
-    });
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject,
+        template: template,
+        context,
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
   }
 
   async sendPasswordResetMail(email: string, recoveryCode: number) {
     await this.sendMail(email, 'Восстановление пароля', 'password-reset', {
       recoveryCode,
     });
+    return;
   }
 
   async sendEmailConfirmation(email: string, verificationCode: number) {
     await this.sendMail(email, 'Верификация Email', 'email-confirm', {
       verificationCode,
     });
+    return;
   }
 }

@@ -20,9 +20,8 @@ export class EmailConfirmation extends Model<EmailConfirmation> {
   @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,
-    allowNull: true,
   })
-  user_id: number | null;
+  user_id: number;
 
   @Column({
     type: DataType.INTEGER,
@@ -38,6 +37,11 @@ export class EmailConfirmation extends Model<EmailConfirmation> {
     type: DataType.STRING,
   })
   token: string;
+
+  @Column({
+    type: DataType.BOOLEAN,
+  })
+  is_token_used: boolean;
 
   @Column({
     type: DataType.STRING,

@@ -6,8 +6,8 @@ import { EmailConfirmation } from './email-confirmation.model';
 import { createHmac } from 'crypto';
 import * as process from 'node:process';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
-import { CreateChangePasswordDto } from './dto/create-change-password-dto';
 import { MailerCustomService } from '../mailer/mailer.service';
+import { CookieOptions, Response } from 'express';
 
 @Injectable()
 export class EmailConfirmationService {
@@ -19,13 +19,12 @@ export class EmailConfirmationService {
   ) {}
 
   async hasRowById(id: number) {
-    const row = await this.emailConfirmationRepository.findOne({
+    return await this.emailConfirmationRepository.findOne({
       where: { user_id: id },
     });
-    return row;
   }
 
-  async confirmEmail({ email }: CreateConfirmEmailDto) {
+  async confirmEmail({ email }: CreateConfirmEmailDto, res: Response) {
     const user = await this.usersService.getUserByEmail(email);
     if (!user) {
       throw new HttpException(
@@ -36,27 +35,40 @@ export class EmailConfirmationService {
     const { id, recoveryCode } = await this.addConfirmationEmailRow(
       user.id,
       email,
+      false,
     );
-
     await this.mailService.sendPasswordResetMail(email, recoveryCode);
+    res.cookie('emailConfirmationId', id, {
+      maxAge: 3600000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
 
     return { id };
   }
 
   generateRecoveryCode(): number {
-    const recoveryCode = Math.floor(100000 + Math.random() * 900000);
-    return recoveryCode;
+    return Math.floor(100000 + Math.random() * 900000);
   }
 
   generateToken(code: number): string {
     const hmac = createHmac('sha256', process.env.SECRET_KEY);
-    const token = hmac.update(String(code)).digest('hex');
-
-    return token;
+    return hmac.update(String(code)).digest('hex');
   }
 
   async getRowById(id: number) {
     return await this.emailConfirmationRepository.findOne({ where: { id } });
+  }
+
+  async getRowByUserId(userId: number) {
+    try {
+      return await this.emailConfirmationRepository.findOne({
+        where: { user_id: userId },
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   async getRowByEmail(email: string) {
@@ -74,7 +86,7 @@ export class EmailConfirmationService {
     if (codeTrue && canUse && timeTrue) {
       row.is_used = true;
       await row.save();
-      return { id: row.id, token: row.token };
+      return { id: row.id, token: row.token, userId: row.user_id };
     }
     throw new HttpException(
       'Неправильный код подтверждения, или его срок действия истек',
@@ -82,21 +94,23 @@ export class EmailConfirmationService {
     );
   }
 
-  async getRowByPasswordDto({ token, id }: CreateChangePasswordDto) {
+  async getRowByIdAndToken(id: number, token: string) {
     return await this.emailConfirmationRepository.findOne({
-      where: { token, id },
+      where: { token, id, is_token_used: false },
     });
   }
 
   async isVerified(id: number, email: string) {
-    const verifiedRow = await this.emailConfirmationRepository.findOne({
+    return await this.emailConfirmationRepository.findOne({
       where: { id, email, is_used: true },
     });
-
-    return verifiedRow;
   }
 
-  async addConfirmationEmailRow(userId: number | null, email: string) {
+  async addConfirmationEmailRow(
+    userId: number | null,
+    email: string,
+    needToken: boolean,
+  ) {
     const currentRow = userId
       ? await this.hasRowById(userId)
       : await this.getRowByEmail(email);
@@ -115,19 +129,41 @@ export class EmailConfirmationService {
       is_used: false,
       token: token,
       expires_at: expiresAt,
+      is_token_used: needToken,
     });
 
     return { id, recoveryCode };
   }
 
-  async confirmCode({ id, code }: CreateConfirmCodeDto) {
-    const row = await this.getRowById(id);
-    if (!row) {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее...',
-        HttpStatus.BAD_REQUEST,
-      );
+  async confirmCodeByRequest(
+    dto: CreateConfirmCodeDto,
+    id: number,
+    res: Response,
+  ) {
+    const verifyRow = await this.confirmCode(dto, id);
+    const cookieOptions: CookieOptions = {
+      maxAge: 3600000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    };
+    res.cookie('id', verifyRow.id, cookieOptions);
+    res.cookie('token', verifyRow.token, cookieOptions);
+    return;
+  }
+
+  async confirmCode({ code }: CreateConfirmCodeDto, id: number) {
+    try {
+      const row = await this.getRowById(id);
+      if (!row) {
+        throw new HttpException(
+          'Произошла ошибка, попробуйте позднее...',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return await this.verifyCode(row, code);
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    return this.verifyCode(row, code);
   }
 }

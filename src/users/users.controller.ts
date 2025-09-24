@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateConfirmEmailDto } from './dto/create-confirm-email-dto';
@@ -6,6 +6,7 @@ import { EmailConfirmationService } from './email-confirmation.service';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
 import { CreateChangePasswordDto } from './dto/create-change-password-dto';
 import { ChangePasswordService } from './change-password.service';
+import { Request, Response } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -32,21 +33,47 @@ export class UsersController {
   @ApiOperation({ summary: 'Подтверждение Email' })
   @ApiResponse({ status: 200 })
   @Post('confirm-email')
-  confirmEmail(@Body() confirmEmailDto: CreateConfirmEmailDto) {
-    return this.emailConfirmationService.confirmEmail(confirmEmailDto);
+  confirmEmail(
+    @Body() confirmEmailDto: CreateConfirmEmailDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.emailConfirmationService.confirmEmail(
+      confirmEmailDto,
+      response,
+    );
   }
 
   @ApiOperation({ summary: 'Подтверждение code_verification' })
   @ApiResponse({ status: 200 })
   @Post('confirm-code')
-  confirmCode(@Body() confirmCodeDto: CreateConfirmCodeDto) {
-    return this.emailConfirmationService.confirmCode(confirmCodeDto);
+  confirmCode(
+    @Body() confirmCodeDto: CreateConfirmCodeDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const id = request.cookies?.emailConfirmationId;
+    return this.emailConfirmationService.confirmCodeByRequest(
+      confirmCodeDto,
+      id,
+      response,
+    );
   }
 
   @ApiOperation({ summary: 'Смена пароля' })
   @ApiResponse({ status: 200 })
   @Post('change-password')
-  changePassword(@Body() confirmPasswordDto: CreateChangePasswordDto) {
-    return this.changePasswordService.updatePasswordFromDto(confirmPasswordDto);
+  changePassword(
+    @Body() confirmPasswordDto: CreateChangePasswordDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const id = request.cookies?.id;
+    const token = request.cookies?.token;
+    return this.changePasswordService.updatePasswordFromDto(
+      confirmPasswordDto,
+      id,
+      token,
+      response,
+    );
   }
 }
