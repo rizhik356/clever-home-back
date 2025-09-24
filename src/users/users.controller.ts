@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateConfirmEmailDto } from './dto/create-confirm-email-dto';
@@ -6,6 +6,7 @@ import { EmailConfirmationService } from './email-confirmation.service';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
 import { CreateChangePasswordDto } from './dto/create-change-password-dto';
 import { ChangePasswordService } from './change-password.service';
+import { Request, Response } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -32,15 +33,25 @@ export class UsersController {
   @ApiOperation({ summary: 'Подтверждение Email' })
   @ApiResponse({ status: 200 })
   @Post('confirm-email')
-  confirmEmail(@Body() confirmEmailDto: CreateConfirmEmailDto) {
-    return this.emailConfirmationService.confirmEmail(confirmEmailDto);
+  confirmEmail(
+    @Body() confirmEmailDto: CreateConfirmEmailDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.emailConfirmationService.confirmEmail(
+      confirmEmailDto,
+      response,
+    );
   }
 
   @ApiOperation({ summary: 'Подтверждение code_verification' })
   @ApiResponse({ status: 200 })
   @Post('confirm-code')
-  confirmCode(@Body() confirmCodeDto: CreateConfirmCodeDto) {
-    return this.emailConfirmationService.confirmCode(confirmCodeDto);
+  confirmCode(
+    @Body() confirmCodeDto: CreateConfirmCodeDto,
+    @Req() request: Request,
+  ) {
+    const id = request.cookies?.emailConfirmationId;
+    return this.emailConfirmationService.confirmCode(confirmCodeDto, id);
   }
 
   @ApiOperation({ summary: 'Смена пароля' })

@@ -31,7 +31,7 @@ import { join } from 'path';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'), // Путь к директории со статическими файлами
-      serveRoot: '/static/',
+      serveRoot: '/api/static/',
     }),
     UsersModule,
     AuthModule,

@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Res, Req } from '@nestjs/common';
 import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { AuthService } from './auth.service';
 import { CreateSiginDto } from './dto/create-sign-in-dto';
@@ -6,6 +6,7 @@ import { CreateConfirmEmailDto } from '../users/dto/create-confirm-email-dto';
 import { CreateConfirmCodeDto } from '../users/dto/create-confirm-code-dto';
 import { CreateRefreshTokensDto } from './dto/create-refresh-tokens-dto';
 import { UserId } from './user-id.decorator';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -17,8 +18,11 @@ export class AuthController {
   }
 
   @Post('sign-up')
-  signUp(@Body() userDto: CreateUserDto) {
-    return this.authService.signUp(userDto);
+  signUp(
+    @Body() userDto: CreateUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.signUp(userDto, res);
   }
 
   @Post('confirm-email')
@@ -27,8 +31,9 @@ export class AuthController {
   }
 
   @Post('confirm-code')
-  confirmCode(@Body() codeDto: CreateConfirmCodeDto) {
-    return this.authService.confirmCode(codeDto);
+  confirmCode(@Body() codeDto: CreateConfirmCodeDto, @Req() request: Request) {
+    const emailConfirmationId = request.cookies?.emailConfirmationId;
+    return this.authService.confirmCode(codeDto, emailConfirmationId);
   }
 
   @Post('refresh-token')

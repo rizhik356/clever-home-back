@@ -8,25 +8,37 @@ export class UsersService {
   constructor(@InjectModel(User) private userRepository: typeof User) {}
 
   async createUser(dto: CreateUserDto) {
-    const user = await this.userRepository.create(dto);
-    return user;
+    try {
+      return await this.userRepository.create(dto);
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   async getUserById(id: number) {
-    const user = await this.userRepository.findOne({
-      where: { id: Number(id) },
-    });
-    return user;
+    try {
+      return await this.userRepository.findOne({
+        where: { id: Number(id) },
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   async getUserByEmail(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-    return user;
+    try {
+      return await this.userRepository.findOne({ where: { email } });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   async getUserByLogin(login: string) {
-    const user = await this.userRepository.findOne({ where: { login } });
-    return user;
+    try {
+      return await this.userRepository.findOne({ where: { login } });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   async isLoginEmpty(login: string) {
@@ -34,7 +46,7 @@ export class UsersService {
     if (user) {
       throw new HttpException(
         'Пользователь с таким логином уже существует',
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.CONFLICT,
       );
     }
   }
@@ -44,7 +56,7 @@ export class UsersService {
     if (user) {
       throw new HttpException(
         'Пользователь с таким email уже существует',
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.CONFLICT,
       );
     }
   }

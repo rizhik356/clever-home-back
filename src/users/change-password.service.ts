@@ -14,8 +14,7 @@ export class ChangePasswordService {
   ) {}
 
   private async changePassword(user: User, password: string) {
-    const formatPassword = await this.authService.createPassword(password);
-    user.password = formatPassword;
+    user.password = await this.authService.createPassword(password);
     await user.save();
   }
 
