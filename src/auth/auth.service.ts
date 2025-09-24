@@ -61,6 +61,7 @@ export class AuthService {
       await this.emailConfirmationService.addConfirmationEmailRow(
         user.id,
         user.email,
+        true,
       );
 
     await this.mailerService.sendEmailConfirmation(user.email, recoveryCode);
@@ -188,7 +189,11 @@ export class AuthService {
       );
     }
     const { id, recoveryCode } =
-      await this.emailConfirmationService.addConfirmationEmailRow(null, email);
+      await this.emailConfirmationService.addConfirmationEmailRow(
+        null,
+        email,
+        false,
+      );
     await this.mailerService.sendEmailConfirmation(email, recoveryCode);
     return { id };
   }

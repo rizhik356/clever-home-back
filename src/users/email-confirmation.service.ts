@@ -6,9 +6,8 @@ import { EmailConfirmation } from './email-confirmation.model';
 import { createHmac } from 'crypto';
 import * as process from 'node:process';
 import { CreateConfirmCodeDto } from './dto/create-confirm-code-dto';
-import { CreateChangePasswordDto } from './dto/create-change-password-dto';
 import { MailerCustomService } from '../mailer/mailer.service';
-import { Response } from 'express';
+import { CookieOptions, Response } from 'express';
 
 @Injectable()
 export class EmailConfirmationService {
@@ -36,6 +35,7 @@ export class EmailConfirmationService {
     const { id, recoveryCode } = await this.addConfirmationEmailRow(
       user.id,
       email,
+      false,
     );
     await this.mailService.sendPasswordResetMail(email, recoveryCode);
     res.cookie('emailConfirmationId', id, {
@@ -94,9 +94,9 @@ export class EmailConfirmationService {
     );
   }
 
-  async getRowByPasswordDto({ token, id }: CreateChangePasswordDto) {
+  async getRowByIdAndToken(id: number, token: string) {
     return await this.emailConfirmationRepository.findOne({
-      where: { token, id },
+      where: { token, id, is_token_used: false },
     });
   }
 
@@ -106,7 +106,11 @@ export class EmailConfirmationService {
     });
   }
 
-  async addConfirmationEmailRow(userId: number | null, email: string) {
+  async addConfirmationEmailRow(
+    userId: number | null,
+    email: string,
+    needToken: boolean,
+  ) {
     const currentRow = userId
       ? await this.hasRowById(userId)
       : await this.getRowByEmail(email);
@@ -125,9 +129,27 @@ export class EmailConfirmationService {
       is_used: false,
       token: token,
       expires_at: expiresAt,
+      is_token_used: needToken,
     });
 
     return { id, recoveryCode };
+  }
+
+  async confirmCodeByRequest(
+    dto: CreateConfirmCodeDto,
+    id: number,
+    res: Response,
+  ) {
+    const verifyRow = await this.confirmCode(dto, id);
+    const cookieOptions: CookieOptions = {
+      maxAge: 3600000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    };
+    res.cookie('id', verifyRow.id, cookieOptions);
+    res.cookie('token', verifyRow.token, cookieOptions);
+    return;
   }
 
   async confirmCode({ code }: CreateConfirmCodeDto, id: number) {
@@ -139,7 +161,7 @@ export class EmailConfirmationService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      return this.verifyCode(row, code);
+      return await this.verifyCode(row, code);
     } catch (error) {
       throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }

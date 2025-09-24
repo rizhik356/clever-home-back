@@ -49,15 +49,31 @@ export class UsersController {
   confirmCode(
     @Body() confirmCodeDto: CreateConfirmCodeDto,
     @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
     const id = request.cookies?.emailConfirmationId;
-    return this.emailConfirmationService.confirmCode(confirmCodeDto, id);
+    return this.emailConfirmationService.confirmCodeByRequest(
+      confirmCodeDto,
+      id,
+      response,
+    );
   }
 
   @ApiOperation({ summary: 'Смена пароля' })
   @ApiResponse({ status: 200 })
   @Post('change-password')
-  changePassword(@Body() confirmPasswordDto: CreateChangePasswordDto) {
-    return this.changePasswordService.updatePasswordFromDto(confirmPasswordDto);
+  changePassword(
+    @Body() confirmPasswordDto: CreateChangePasswordDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const id = request.cookies?.id;
+    const token = request.cookies?.token;
+    return this.changePasswordService.updatePasswordFromDto(
+      confirmPasswordDto,
+      id,
+      token,
+      response,
+    );
   }
 }
