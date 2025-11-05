@@ -35,7 +35,7 @@ export class DevicesController {
     return this.devicesService.getAllUserDevices(req?.user?.id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post('/params')
   postParams(@Body() newParamsDto: CreateNewParamsDto) {
     return this.devicesService.setNewDeviceParams(newParamsDto);

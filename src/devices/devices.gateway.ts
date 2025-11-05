@@ -66,7 +66,6 @@ export class DevicesGateway
   @SubscribeMessage('pong') // Обработка ответа от клиента
   handlePong(client: Socket) {
     console.log(`Received pong from ${client.id}`);
-    console.log(this.clients);
     // Здесь можно добавить логику для обработки ответа от клиента
   }
 
