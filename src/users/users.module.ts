@@ -8,15 +8,33 @@ import { EmailConfirmationService } from './email-confirmation.service';
 import { ChangePasswordService } from './change-password.service';
 import { AuthModule } from '../auth/auth.module';
 import { MailerModule } from '../mailer/mailer.module';
+import { Family } from './family.model';
+import { FamilyService } from './family.service';
+import { FamilyMember } from './family-members.model';
+import { Member } from './member.model';
+import { InviteFamilyMembers } from './invite-family-members.model';
+import { FamilyController } from './family.controller';
 
 @Module({
-  controllers: [UsersController],
-  providers: [UsersService, EmailConfirmationService, ChangePasswordService],
+  controllers: [UsersController, FamilyController],
+  providers: [
+    UsersService,
+    EmailConfirmationService,
+    ChangePasswordService,
+    FamilyService,
+  ],
   imports: [
-    SequelizeModule.forFeature([User, EmailConfirmation]),
+    SequelizeModule.forFeature([
+      User,
+      EmailConfirmation,
+      Family,
+      FamilyMember,
+      Member,
+      InviteFamilyMembers,
+    ]),
     forwardRef(() => AuthModule),
     MailerModule,
   ],
-  exports: [UsersService, EmailConfirmationService],
+  exports: [UsersService, EmailConfirmationService, FamilyService],
 })
 export class UsersModule {}

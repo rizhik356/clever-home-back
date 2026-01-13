@@ -63,14 +63,37 @@ export class DevicesService {
   private async addDeviceToken(data: CreateNewGetTokenDto) {
     const { userId, deviceId, name, roomId } = data;
     const token = this.makeToken();
-    await this.deviceTokens.create({
-      user_id: userId,
-      token,
-      device_id: deviceId,
-      name: name,
-      room_id: roomId,
-      is_used: false,
+
+    const existingDevice = await this.deviceTokens.findOne({
+      where: { device_id: deviceId },
     });
+
+    if (existingDevice) {
+      // Если устройство найдено - обновляем его токен
+      await this.deviceTokens.update(
+        {
+          token: token,
+          user_id: userId,
+          name: name,
+          room_id: roomId,
+          is_used: false,
+          updatedAt: new Date(),
+        },
+        {
+          where: { device_id: deviceId },
+        },
+      );
+    } else {
+      // Если устройство не найдено - создаем новое
+      await this.deviceTokens.create({
+        user_id: userId,
+        token,
+        device_id: deviceId,
+        name: name,
+        room_id: roomId,
+        is_used: false,
+      });
+    }
 
     return token;
   }

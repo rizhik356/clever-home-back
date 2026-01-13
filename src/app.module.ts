@@ -13,7 +13,6 @@ import { join } from 'path';
 
 @Module({
   controllers: [],
-  providers: [],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,

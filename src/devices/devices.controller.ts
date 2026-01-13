@@ -4,6 +4,7 @@ import { CreateAddNewDeviceDto } from './dto/create-add-new-device-dto';
 import { CreateNewGetTokenDto } from './dto/create-new-get-token-dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { CreateNewParamsDto } from './dto/create-new-params-dto';
+import { ParsedResponse } from '../auth/types';
 
 @Controller('devices')
 export class DevicesController {
@@ -31,7 +32,7 @@ export class DevicesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/')
-  getDevices(@Req() req: any) {
+  getDevices(@Req() req: ParsedResponse) {
     return this.devicesService.getAllUserDevices(req?.user?.id);
   }
 

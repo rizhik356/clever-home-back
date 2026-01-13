@@ -36,4 +36,12 @@ export class MailerCustomService {
     });
     return;
   }
+
+  async sendFamilyInvite(email: string, userName: string, url: string) {
+    await this.sendMail(email, 'Приглашение в семью', 'family-invite', {
+      userName,
+      url,
+    });
+    return;
+  }
 }
