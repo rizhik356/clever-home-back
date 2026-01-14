@@ -1,10 +1,20 @@
-import { Body, Controller, Post, Req, UseGuards, Get } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  UseGuards,
+  Get,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { FamilyService } from './family.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { InviteUserDto } from './dto/invite-user-to-family-dto';
 import { ParsedResponse } from '../auth/types';
 import { AccessInviteUserDto } from './dto/access-invite-user-to-family-dto';
+import { DeleteUserFromFamilyDto } from './dto/delete-user-from-family-dto';
 
 @Controller('family')
 export class FamilyController {
@@ -31,11 +41,22 @@ export class FamilyController {
     return this.familyService.addMemberFromToken(accessInviteDto);
   }
 
-  @ApiOperation({ summary: 'Добавление пользователя по токену' })
+  @ApiOperation({ summary: 'Получение всех членов семьи' })
   @ApiResponse({ status: 200 })
   @UseGuards(JwtAuthGuard)
   @Get('/')
   getFamilies(@Req() req: ParsedResponse) {
     return this.familyService.getUserFamilyMembers(req?.user.id);
+  }
+
+  @ApiOperation({ summary: 'Удаление члена семьи' })
+  @ApiResponse({ status: 200 })
+  @UseGuards(JwtAuthGuard)
+  @Delete('/')
+  deleteUserFromFamily(
+    @Query() query: DeleteUserFromFamilyDto,
+    @Req() req: ParsedResponse,
+  ) {
+    return this.familyService.deleteUserFromFamilyByOwner(req?.user.id, query);
   }
 }

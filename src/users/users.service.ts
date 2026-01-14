@@ -1,15 +1,28 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from './users.model';
 import { CreateUserDto } from './dto/create-user-dto';
+import { FamilyService } from './family.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User) private userRepository: typeof User) {}
+  constructor(
+    @InjectModel(User) private userRepository: typeof User,
+    @Inject(forwardRef(() => FamilyService))
+    private familyService: FamilyService,
+  ) {}
 
   async createUser(dto: CreateUserDto) {
     try {
-      return await this.userRepository.create(dto);
+      const newUser = await this.userRepository.create(dto);
+      await this.familyService.createFamilyForUser(newUser.id);
+      return newUser;
     } catch (error) {
       throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }

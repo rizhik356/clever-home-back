@@ -46,7 +46,7 @@ export class AuthService {
 
     if (hasEmail || hasLogin) {
       throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
+        'Пользователь с таким именем или email уже существует',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
@@ -64,13 +64,18 @@ export class AuthService {
         true,
       );
 
-    await this.mailerService.sendEmailConfirmation(user.email, recoveryCode);
-    res.cookie('emailConfirmationId', id, {
-      maxAge: 3600000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
+    try {
+      await this.mailerService.sendEmailConfirmation(user.email, recoveryCode);
+      res.cookie('emailConfirmationId', id, {
+        maxAge: 3600000,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+    } catch (error) {
+      await user.destroy();
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
 
     return;
   }

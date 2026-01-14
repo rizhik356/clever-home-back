@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Family } from './family.model';
 import { FamilyMember } from './family-members.model';
@@ -11,10 +17,12 @@ import { InviteFamilyMembers } from './invite-family-members.model';
 import { AccessInviteUserDto } from './dto/access-invite-user-to-family-dto';
 import { Member } from './member.model';
 import { User } from './users.model';
+import { DeleteUserFromFamilyDto } from './dto/delete-user-from-family-dto';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class FamilyService {
-  private readonly memberOwnerId: number;
+  readonly memberOwnerId: number;
   private readonly inviteSubPath: string;
   constructor(
     @InjectModel(Family) private familyRepository: typeof Family,
@@ -22,6 +30,7 @@ export class FamilyService {
     private familyMemberRepository: typeof FamilyMember,
     @InjectModel(InviteFamilyMembers)
     private inviteFamilyMembers: typeof InviteFamilyMembers,
+    @Inject(forwardRef(() => UsersService))
     private usersService: UsersService,
     private mailerService: MailerCustomService,
     private jwtService: JwtService,
@@ -32,7 +41,12 @@ export class FamilyService {
 
   async createFamilyForUser(userId: number) {
     const family = await this.createFamily(userId);
-    return await this.addMemberToFamily(userId, family.id, this.memberOwnerId);
+    return await this.addMemberToFamily(
+      userId,
+      family.id,
+      this.memberOwnerId,
+      userId,
+    );
   }
 
   async addMemberToFamily(
@@ -72,30 +86,91 @@ export class FamilyService {
     }
   }
 
+  async getFamilyMembersWithoutUser(userId: number, familyId: number) {
+    try {
+      return await this.familyMemberRepository.findAll({
+        where: { user_id: { [Op.ne]: userId }, family_id: familyId },
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async deleteFamily(familyId: number) {
+    try {
+      await this.familyRepository.update(
+        { is_using: false },
+        { where: { id: familyId } },
+      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async makeAnotherUserOwner(userId: number, familyId: number) {
+    const familyMembers = await this.getFamilyMembersWithoutUser(
+      userId,
+      familyId,
+    );
+    if (familyMembers.length) {
+      const firstMember = familyMembers[0];
+      await firstMember.update({ member_id: this.memberOwnerId });
+      await this.familyRepository.update(
+        { owner_id: firstMember.user_id },
+        { where: { id: firstMember.family_id } },
+      );
+    } else {
+      await this.deleteFamily(familyId);
+    }
+  }
+
   async deleteUserFromFamily(
     userId: number,
     familyId: number,
-    ownerDelete: false,
+    needNewFamily: boolean = true,
   ) {
     try {
-      const familyMember = await this.familyMemberRepository.findOne({
-        where: { user_id: userId, family_id: familyId, is_using: true },
-      });
-
-      if (familyMember?.member_id === this.memberOwnerId && !ownerDelete) {
-        throw new HttpException(
-          'Нельзя удалить админимтратора',
-          HttpStatus.BAD_REQUEST,
-        );
+      const familyMember = await this.getUserFamily(userId, familyId);
+      if (familyMember?.member_id === this.memberOwnerId) {
+        await this.makeAnotherUserOwner(userId, familyId);
+      }
+      if (needNewFamily) {
+        await this.createFamilyForUser(familyMember.user_id);
       }
       await familyMember.update({ is_using: false });
-      await this.createFamilyForUser(familyMember.user_id);
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      console.log(e);
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  async getOwnerFamily(familyId: number) {
+    try {
+      const family = await this.familyRepository.findOne({
+        where: { id: familyId },
+      });
+      return family.owner_id;
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async deleteUserFromFamilyByOwner(
+    ownerId: number,
+    { userId, familyId }: DeleteUserFromFamilyDto,
+  ) {
+    const numericFamilyId = Number(familyId);
+    const numericUserId = Number(userId);
+
+    const familyOwner = await this.getOwnerFamily(numericFamilyId);
+    if (ownerId === familyOwner) {
+      await this.deleteUserFromFamily(numericUserId, numericFamilyId);
+      return;
+    }
+    throw new HttpException(
+      'Недостаточно прав для удаления пользователя',
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   makeInviteToken(data: InviteTokenData) {
@@ -184,6 +259,11 @@ export class FamilyService {
   async addMemberFromToken({ token }: AccessInviteUserDto) {
     const { userId, familyId, memberId } = this.makeParsedToken(token);
     const inviteTokenRow = await this.isUsedToken(token);
+    const hasUserFamily = await this.getUserFamily(userId);
+
+    if (hasUserFamily) {
+      await this.deleteUserFromFamily(userId, familyId, false);
+    }
 
     await this.addMemberToFamily(
       userId,
@@ -199,6 +279,7 @@ export class FamilyService {
       return await this.familyRepository.findOne({
         where: {
           id: familyId,
+          is_using: true,
         },
         attributes: ['id', 'name', ['owner_id', 'ownerId']],
         include: [
@@ -206,6 +287,7 @@ export class FamilyService {
             model: FamilyMember,
             as: 'members',
             attributes: ['id'],
+            where: { is_using: true },
             include: [
               { model: Member, as: 'member', attributes: ['id', 'name'] },
               {
@@ -218,34 +300,34 @@ export class FamilyService {
           },
         ],
       });
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getUserFamily(userId: number, familyId?: number) {
+    const requiredParams = { user_id: userId, is_using: true };
+    const whereClause = familyId
+      ? { ...requiredParams, family_id: familyId }
+      : requiredParams;
+
+    try {
+      return await this.familyMemberRepository.findOne({
+        where: whereClause,
+      });
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
   }
 
   async getUserFamilyMembers(userId: number) {
-    try {
-      const userFamily = await this.familyMemberRepository.findOne({
-        where: {
-          user_id: userId,
-          is_using: true,
-        },
-      });
-      if (!userFamily) {
-        throw new HttpException(
-          'У пользователя нет доступной семьи',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      return await this.getMembersByFamilyId(userFamily.family_id);
-    } catch {
+    const userFamily = await this.getUserFamily(userId);
+    if (!userFamily) {
       throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
+        'У пользователя нет доступной семьи',
+        HttpStatus.NOT_FOUND,
       );
     }
+    return await this.getMembersByFamilyId(userFamily.family_id);
   }
 }
