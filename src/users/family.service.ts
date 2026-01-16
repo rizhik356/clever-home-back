@@ -36,7 +36,7 @@ export class FamilyService {
     private jwtService: JwtService,
   ) {
     this.memberOwnerId = 1;
-    this.inviteSubPath = '/invite';
+    this.inviteSubPath = '/family/invite';
   }
 
   async createFamilyForUser(userId: number) {
@@ -63,11 +63,8 @@ export class FamilyService {
         invited_by: invitedBy || null,
         is_using: true,
       });
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -78,11 +75,8 @@ export class FamilyService {
         is_using: true,
         name: 'Новая семья',
       });
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -195,11 +189,8 @@ export class FamilyService {
         invited_by: userId,
         is_using: true,
       });
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -219,7 +210,7 @@ export class FamilyService {
       email,
       ...rest,
     });
-    const inviteUrl = `${process.env.FRONTEND_URL}${this.inviteSubPath}/${token}`;
+    const inviteUrl = `${process.env.FRONTEND_URL}${this.inviteSubPath}?token=${token}`;
     await this.setInviteTokenToModel(token, userId);
     await this.sendInviteToEmail(email, invitedUser.login, inviteUrl);
     return;
@@ -248,11 +239,8 @@ export class FamilyService {
         );
       }
       return await inviteTokenRow.update({ is_using: false });
-    } catch {
-      throw new HttpException(
-        'Произошла ошибка, попробуйте позднее',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (e) {
+      throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -262,7 +250,7 @@ export class FamilyService {
     const hasUserFamily = await this.getUserFamily(userId);
 
     if (hasUserFamily) {
-      await this.deleteUserFromFamily(userId, familyId, false);
+      await this.deleteUserFromFamily(userId, hasUserFamily.family_id, false);
     }
 
     await this.addMemberToFamily(
@@ -320,7 +308,22 @@ export class FamilyService {
     }
   }
 
-  async getUserFamilyMembers(userId: number) {
+  async getUsersIdsInFamily(familyId: number) {
+    try {
+      const users = await this.familyMemberRepository.findAll({
+        where: {
+          family_id: familyId,
+          is_using: true,
+        },
+        attributes: ['user_id'],
+      });
+      return users.map(({ user_id }) => user_id);
+    } catch (error) {
+      throw new HttpException(error, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getUserFamilyMembers(userId: number, onlyIds: boolean = false) {
     const userFamily = await this.getUserFamily(userId);
     if (!userFamily) {
       throw new HttpException(
@@ -328,6 +331,8 @@ export class FamilyService {
         HttpStatus.NOT_FOUND,
       );
     }
-    return await this.getMembersByFamilyId(userFamily.family_id);
+    return onlyIds
+      ? await this.getUsersIdsInFamily(userFamily.family_id)
+      : await this.getMembersByFamilyId(userFamily.family_id);
   }
 }

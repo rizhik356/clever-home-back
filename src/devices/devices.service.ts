@@ -21,6 +21,7 @@ import { DefaultRooms } from '../rooms/default-rooms.model';
 import { HubOutputs } from './hub-outputs.model';
 import { HubOutputsService } from './hub-outputs.service';
 import { DeviceParams } from './types';
+import { FamilyService } from '../users/family.service';
 
 @Injectable()
 export class DevicesService {
@@ -32,7 +33,10 @@ export class DevicesService {
     private devicesGatewayService: DevicesGatewayService,
     @Inject(forwardRef(() => HubOutputsService))
     private hubOutputsService: HubOutputsService,
+    @Inject(forwardRef(() => FamilyService))
+    private familyService: FamilyService,
     private devicesGateway: DevicesGateway,
+
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
     @InjectModel(UserDevices) private userDevices: typeof UserDevices,
     @InjectModel(DevicesParams) private devicesParams: typeof DevicesParams,
@@ -158,7 +162,6 @@ export class DevicesService {
   }
 
   private getDeviceIncludes(id?: number) {
-    console.log(id);
     return [
       {
         model: DefaultRooms,
@@ -186,7 +189,7 @@ export class DevicesService {
     ];
   }
 
-  async getUserDevicesById(userId: number) {
+  async getUserDevicesById(userId: number[]) {
     try {
       return await UserDevices.findAll({
         where: { user_id: userId },
@@ -209,7 +212,11 @@ export class DevicesService {
   }
 
   async getAllUserDevices(userId: number) {
-    const userDevices = await this.getUserDevicesById(userId);
+    const usersInFamily = (await this.familyService.getUserFamilyMembers(
+      userId,
+      true,
+    )) as number[];
+    const userDevices = await this.getUserDevicesById(usersInFamily);
 
     if (!userDevices.length) {
       return [];
