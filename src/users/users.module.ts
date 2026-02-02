@@ -24,6 +24,10 @@ import { FamilyController } from './family.controller';
     FamilyService,
   ],
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.${process.env.NODE_ENV}.env`,
+    }),
     SequelizeModule.forFeature([
       User,
       EmailConfirmation,
