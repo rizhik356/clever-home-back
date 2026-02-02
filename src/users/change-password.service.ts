@@ -5,7 +5,6 @@ import { UsersService } from './users.service';
 import { User } from './users.model';
 import { AuthService } from '../auth/auth.service';
 import { CookieOptions, Response } from 'express';
-import process from 'node:process';
 
 @Injectable()
 export class ChangePasswordService {
@@ -34,6 +33,7 @@ export class ChangePasswordService {
       const user = await this.usersService.getUserById(row.user_id);
       if (user) {
         await this.changePassword(user, dto.password);
+        console.log(process.env.NODE_ENV);
         const cookieOptions: CookieOptions = {
           maxAge: -1,
           httpOnly: true,

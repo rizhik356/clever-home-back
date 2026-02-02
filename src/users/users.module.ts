@@ -14,7 +14,6 @@ import { FamilyMember } from './family-members.model';
 import { Member } from './member.model';
 import { InviteFamilyMembers } from './invite-family-members.model';
 import { FamilyController } from './family.controller';
-import { ConfigModule } from '@nestjs/config';
 
 @Module({
   controllers: [UsersController, FamilyController],
@@ -25,10 +24,6 @@ import { ConfigModule } from '@nestjs/config';
     FamilyService,
   ],
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: `.${process.env.NODE_ENV}.env`,
-    }),
     SequelizeModule.forFeature([
       User,
       EmailConfirmation,
