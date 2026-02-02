@@ -12,7 +12,7 @@ const start = async () => {
 
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
-      ? ['http://82.202.169.113:7070']
+      ? ['http://82.202.169.113:8080']
       : true;
 
   app.enableCors({
