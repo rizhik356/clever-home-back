@@ -20,7 +20,7 @@ export class UsersService {
 
   async createUser(dto: CreateUserDto) {
     try {
-      const newUser = await this.userRepository.create(dto);xxxx
+      const newUser = await this.userRepository.create(dto);
       await this.familyService.createFamilyForUser(newUser.id);
       return newUser;
     } catch (error) {
