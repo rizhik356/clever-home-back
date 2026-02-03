@@ -33,11 +33,10 @@ export class ChangePasswordService {
       const user = await this.usersService.getUserById(row.user_id);
       if (user) {
         await this.changePassword(user, dto.password);
-        console.log(process.env.NODE_ENV);
         const cookieOptions: CookieOptions = {
           maxAge: -1,
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV !== 'developmentп',
           sameSite: 'strict',
         };
         res.cookie('id', id, cookieOptions);
