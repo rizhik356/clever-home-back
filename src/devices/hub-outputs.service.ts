@@ -99,8 +99,8 @@ export class HubOutputsService {
         userId,
         LogActionType.HUB_OUTPUT_UPDATED,
         {
-          deviceId: id,
-          newValues: rest,
+          deviceId: record.hub_id,
+          newValues: { id, ...rest },
         },
       );
       return this.getAllHubs(record.hub_id);
