@@ -22,6 +22,8 @@ import { HubOutputs } from './hub-outputs.model';
 import { HubOutputsService } from './hub-outputs.service';
 import { DeviceParams } from './types';
 import { FamilyService } from '../users/family.service';
+import { DevicesLogsService } from '../devices-logs/devices-logs.service';
+import { LogActionType } from '../devices-logs/enums';
 
 @Injectable()
 export class DevicesService {
@@ -35,6 +37,7 @@ export class DevicesService {
     private hubOutputsService: HubOutputsService,
     @Inject(forwardRef(() => FamilyService))
     private familyService: FamilyService,
+    private devicesLogService: DevicesLogsService,
     private devicesGateway: DevicesGateway,
 
     @InjectModel(DeviceTokens) private deviceTokens: typeof DeviceTokens,
@@ -125,7 +128,16 @@ export class DevicesService {
       params,
       active: false,
     });
+
     await deviceTokenRow.update({ is_used: true });
+    await this.devicesLogService.log(userId, LogActionType.DEVICE_ADDED, {
+      deviceId: newDevice.id,
+      newValues: {
+        roomId: room_id,
+        deviceId: device_id,
+        name,
+      },
+    });
     return { serial, id: newDevice.id, params };
   }
 
@@ -260,7 +272,10 @@ export class DevicesService {
     return Object.fromEntries(formatEntries);
   }
 
-  async setNewDeviceParams({ id, parentId, ...rest }: CreateNewParamsDto) {
+  async setNewDeviceParams(
+    { id, parentId, ...rest }: CreateNewParamsDto,
+    userId: number,
+  ) {
     const currentId = parentId || id;
 
     const deviceGateway =
@@ -275,12 +290,24 @@ export class DevicesService {
         params,
       );
       await device.update({ params: newParams });
+
       const updatedParent = await this.getDeviceFullById(currentId, id);
-      return this.hubOutputsService.formatHubOutputs(
+      const childWithNewParams = this.hubOutputsService.formatHubOutputs(
         updatedParent.active,
         updatedParent.params,
         updatedParent.hubOutputs,
       )[0];
+
+      await this.devicesLogService.log(
+        userId,
+        LogActionType.DEVICE_PARAMS_UPDATED,
+        {
+          deviceId: id,
+          newValues: rest,
+        },
+      );
+
+      return childWithNewParams;
     }
 
     const newParams = await this.devicesGateway.setNewParams(
@@ -288,6 +315,15 @@ export class DevicesService {
       rest,
     );
     await device.update({ params: newParams });
+
+    await this.devicesLogService.log(
+      userId,
+      LogActionType.DEVICE_PARAMS_UPDATED,
+      {
+        deviceId: currentId,
+        newValues: newParams,
+      },
+    );
     return device;
   }
 }

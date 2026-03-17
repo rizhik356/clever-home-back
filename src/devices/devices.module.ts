@@ -17,6 +17,8 @@ import { AuthModule } from '../auth/auth.module';
 import { HubOutputs } from './hub-outputs.model';
 import { HubOutputsService } from './hub-outputs.service';
 import { HubOutputsController } from './hub-outputs.controller';
+import { DevicesLogsModule } from '../devices-logs/devices-logs.module';
+import { DevicesLogs } from '../devices-logs/devices-logs.model';
 
 @Module({
   controllers: [DevicesController, HubOutputsController],
@@ -40,9 +42,11 @@ import { HubOutputsController } from './hub-outputs.controller';
       DevicesGatewayModel,
       DevicesParams,
       HubOutputs,
+      DevicesLogs,
     ]),
     UsersModule,
     AuthModule,
+    DevicesLogsModule,
   ],
 })
 export class DevicesModule {}

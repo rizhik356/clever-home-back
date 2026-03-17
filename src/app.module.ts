@@ -10,6 +10,7 @@ import { DevicesModule } from './devices/devices.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { DevicesLogsModule } from './devices-logs/devices-logs.module';
 
 @Module({
   controllers: [],
@@ -37,6 +38,7 @@ import { join } from 'path';
     MailerModule,
     DevicesModule,
     RoomsModule,
+    DevicesLogsModule,
   ],
 })
 export class AppModule {}

@@ -1,8 +1,10 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { DevicesGatewayModel } from './devices-gateway.model';
 import { Socket } from 'socket.io';
 import { DevicesService } from './devices.service';
+import { DevicesLogsService } from '../devices-logs/devices-logs.service';
+import { LogActionType } from '../devices-logs/enums';
 
 @Injectable()
 export class DevicesGatewayService {
@@ -11,6 +13,7 @@ export class DevicesGatewayService {
     private devicesGatewayRepository: typeof DevicesGatewayModel,
     @Inject(forwardRef(() => DevicesService))
     private devicesService: DevicesService,
+    private devicesLogsService: DevicesLogsService,
   ) {}
 
   async addDeviceGateWay(id: number, clientId: string) {
@@ -47,6 +50,17 @@ export class DevicesGatewayService {
       }
       await this.addDeviceGateWay(id, clientId);
       await device.update({ active: true });
+      await this.devicesLogsService.log(
+        device.user_id,
+        LogActionType.DEVICE_CONNECTED,
+        {
+          newValues: {
+            name: device.name,
+            roomId: device.room_id,
+            deviceId: device.device_id,
+          },
+        },
+      );
       return true;
     }
     return false;
@@ -61,6 +75,18 @@ export class DevicesGatewayService {
       );
       await device.update({ active: false });
       await deviceGateway.destroy();
+
+      await this.devicesLogsService.log(
+        device.user_id,
+        LogActionType.DEVICE_DISCONNECTED,
+        {
+          newValues: {
+            name: device.name,
+            roomId: device.room_id,
+            deviceId: device.device_id,
+          },
+        },
+      );
     }
     return;
   }

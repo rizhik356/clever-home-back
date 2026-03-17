@@ -12,6 +12,8 @@ import {
   CreatePatchHubOutputsDTO,
 } from './dto/create-hub-outputs-dto';
 import { DevicesService } from './devices.service';
+import { LogActionType } from '../devices-logs/enums';
+import { DevicesLogsService } from '../devices-logs/devices-logs.service';
 
 @Injectable()
 export class HubOutputsService {
@@ -19,6 +21,7 @@ export class HubOutputsService {
     @InjectModel(HubOutputs) private hubOutputs: typeof HubOutputs,
     @Inject(forwardRef(() => DevicesService))
     private devicesService: DevicesService,
+    private devicesLogService: DevicesLogsService,
   ) {}
 
   formatHubOutputs(
@@ -63,40 +66,64 @@ export class HubOutputsService {
     );
   }
 
-  async addNewOutput({
-    parentId,
-    roomId,
-    deviceId,
-    ...rest
-  }: CreateHubOutputsDTO) {
+  async addNewOutput(values: CreateHubOutputsDTO, userId: number) {
     try {
+      const { parentId, roomId, deviceId, ...rest } = values;
       await this.hubOutputs.create({
         hub_id: parentId,
         room_id: roomId,
         device_id: deviceId,
         ...rest,
       });
+
+      await this.devicesLogService.log(userId, LogActionType.HUB_OUTPUT_ADDED, {
+        deviceId: parentId,
+        newValues: values,
+      });
+
       return await this.getAllHubs(parentId);
     } catch (error) {
       throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 
-  async patchHubOutput({ id, ...rest }: CreatePatchHubOutputsDTO) {
+  async patchHubOutput(
+    { id, ...rest }: CreatePatchHubOutputsDTO,
+    userId: number,
+  ) {
     try {
       const record = await this.hubOutputs.findOne({ where: { id } });
+
       await record.update(rest);
+      await this.devicesLogService.log(
+        userId,
+        LogActionType.HUB_OUTPUT_UPDATED,
+        {
+          deviceId: id,
+          newValues: rest,
+        },
+      );
       return this.getAllHubs(record.hub_id);
     } catch (error) {
       throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
   }
 
-  async deleteHubOutput(id: string) {
+  async deleteHubOutput(id: string, userId: number) {
     const formatId = Number(id);
     try {
       const record = await this.hubOutputs.findOne({ where: { id: formatId } });
+      const { output, hub_id } = record;
+
       await record.destroy();
+      await this.devicesLogService.log(
+        userId,
+        LogActionType.HUB_OUTPUT_REMOVED,
+        {
+          deviceId: hub_id,
+          newValues: { output },
+        },
+      );
       return await this.getAllHubs(record.hub_id);
     } catch (error) {
       throw new HttpException(error, HttpStatus.UNPROCESSABLE_ENTITY);

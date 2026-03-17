@@ -38,7 +38,10 @@ export class DevicesController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/params')
-  postParams(@Body() newParamsDto: CreateNewParamsDto) {
-    return this.devicesService.setNewDeviceParams(newParamsDto);
+  postParams(
+    @Req() req: ParsedResponse,
+    @Body() newParamsDto: CreateNewParamsDto,
+  ) {
+    return this.devicesService.setNewDeviceParams(newParamsDto, req?.user?.id);
   }
 }

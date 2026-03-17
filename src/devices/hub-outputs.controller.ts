@@ -6,6 +6,7 @@ import {
   Patch,
   Delete,
   Param,
+  Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import {
@@ -13,6 +14,7 @@ import {
   CreatePatchHubOutputsDTO,
 } from './dto/create-hub-outputs-dto';
 import { HubOutputsService } from './hub-outputs.service';
+import { ParsedResponse } from '../auth/types';
 
 @Controller('hub-outputs')
 export class HubOutputsController {
@@ -20,17 +22,20 @@ export class HubOutputsController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/')
-  addNewOutput(@Body() body: CreateHubOutputsDTO) {
-    return this.hubOutputsService.addNewOutput(body);
+  addNewOutput(@Req() req: ParsedResponse, @Body() body: CreateHubOutputsDTO) {
+    return this.hubOutputsService.addNewOutput(body, req?.user?.id);
   }
   @UseGuards(JwtAuthGuard)
   @Patch('/')
-  patchHubOutput(@Body() body: CreatePatchHubOutputsDTO) {
-    return this.hubOutputsService.patchHubOutput(body);
+  patchHubOutput(
+    @Req() req: ParsedResponse,
+    @Body() body: CreatePatchHubOutputsDTO,
+  ) {
+    return this.hubOutputsService.patchHubOutput(body, req?.user?.id);
   }
   @UseGuards(JwtAuthGuard)
   @Delete('/:id')
-  delete(@Param('id') id: string) {
-    return this.hubOutputsService.deleteHubOutput(id);
+  delete(@Req() req: ParsedResponse, @Param('id') id: string) {
+    return this.hubOutputsService.deleteHubOutput(id, req?.user?.id);
   }
 }
