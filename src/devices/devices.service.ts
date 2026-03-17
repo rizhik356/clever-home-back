@@ -302,7 +302,7 @@ export class DevicesService {
         userId,
         LogActionType.DEVICE_PARAMS_UPDATED,
         {
-          deviceId: id,
+          deviceId: parentId,
           newValues: rest,
         },
       );
@@ -320,7 +320,7 @@ export class DevicesService {
       userId,
       LogActionType.DEVICE_PARAMS_UPDATED,
       {
-        deviceId: currentId,
+        deviceId: id,
         newValues: newParams,
       },
     );

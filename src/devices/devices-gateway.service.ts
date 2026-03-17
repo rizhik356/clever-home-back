@@ -57,8 +57,8 @@ export class DevicesGatewayService {
           newValues: {
             name: device.name,
             roomId: device.room_id,
-            deviceId: device.device_id,
           },
+          deviceId: device.device_id,
         },
       );
       return true;
@@ -83,8 +83,8 @@ export class DevicesGatewayService {
           newValues: {
             name: device.name,
             roomId: device.room_id,
-            deviceId: device.device_id,
           },
+          deviceId: device.device_id,
         },
       );
     }
