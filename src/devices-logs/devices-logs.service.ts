@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/sequelize';
 import { DevicesLogs } from './devices-logs.model';
 import { LogActionType } from './enums';
 import { Op, Transaction } from 'sequelize';
+import { UserDevices } from '../devices/user-devices.model';
 
 @Injectable()
 export class DevicesLogsService {
   constructor(
     @InjectModel(DevicesLogs)
     private deviceLogsRepository: typeof DevicesLogs,
+    @InjectModel(UserDevices) private userDevicesRepository: typeof UserDevices,
   ) {}
   async log(
     userId: number,
@@ -47,13 +49,37 @@ export class DevicesLogsService {
   }
 
   async getUserLogs(userId: number, limit = 100, offset = 0) {
-    return this.deviceLogsRepository.findAndCountAll({
+    const logs = await this.deviceLogsRepository.findAndCountAll({
       where: { user_id: userId },
+      attributes: ['id', 'action', 'createdAt', 'user_id', 'device_id'],
       order: [['createdAt', 'DESC']],
       limit,
       offset,
-      include: ['device'],
+      include: [
+        {
+          model: UserDevices,
+          as: 'device',
+          attributes: ['room_id'], // Только room_id из users_devices
+          required: false, // LEFT JOIN чтобы получать логи даже если устройство удалено
+        },
+      ],
+      raw: true,
+      nest: true,
     });
+
+    // Трансформируем в camelCase
+    const transformedRows = logs.rows.map((log) => ({
+      id: log.id,
+      action: log.action,
+      createdAt: log.createdAt,
+      userId: log.user_id,
+      roomId: log.device?.room_id || null, // room_id из связанного устройства или null
+    }));
+
+    return {
+      rows: transformedRows,
+      count: logs.count,
+    };
   }
 
   async getLogsByDateRange(startDate: Date, endDate: Date, limit = 1000) {
