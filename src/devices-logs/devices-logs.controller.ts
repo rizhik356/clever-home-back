@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ParsedResponse } from '../auth/types';
 
 @Controller('devices-logs')
-export class RoomsController {
+export class DevicesLogsController {
   constructor(private readonly devicesLogsService: DevicesLogsService) {}
 
   @UseGuards(JwtAuthGuard)
