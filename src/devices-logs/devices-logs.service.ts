@@ -4,6 +4,7 @@ import { DevicesLogs } from './devices-logs.model';
 import { LogActionType } from './enums';
 import { Op, Transaction } from 'sequelize';
 import { UserDevices } from '../devices/user-devices.model';
+import { DefaultRooms } from '../rooms/default-rooms.model';
 
 @Injectable()
 export class DevicesLogsService {
@@ -11,6 +12,8 @@ export class DevicesLogsService {
     @InjectModel(DevicesLogs)
     private deviceLogsRepository: typeof DevicesLogs,
     @InjectModel(UserDevices) private userDevicesRepository: typeof UserDevices,
+    @InjectModel(DefaultRooms)
+    private defaultRoomsRepository: typeof DefaultRooms,
   ) {}
   async log(
     userId: number,
@@ -59,8 +62,16 @@ export class DevicesLogsService {
         {
           model: UserDevices,
           as: 'device',
-          attributes: ['room_id'], // Только room_id из users_devices
-          required: false, // LEFT JOIN чтобы получать логи даже если устройство удалено
+          attributes: ['id', 'name', 'room_id'], // Добавляем room_id
+          required: false,
+          include: [
+            {
+              model: DefaultRooms, // Включаем модель комнат
+              as: 'room', // Укажите правильный алиас (может быть 'room' или 'defaultRoom')
+              attributes: ['id', 'room_name'], // Получаем room_name
+              required: false,
+            },
+          ],
         },
       ],
       raw: true,
@@ -68,12 +79,13 @@ export class DevicesLogsService {
     });
 
     // Трансформируем в camelCase
-    const transformedRows = logs.rows.map((log) => ({
+    const transformedRows = logs.rows.map((log: any) => ({
       id: log.id,
       action: log.action,
       createdAt: log.createdAt,
       userId: log.user_id,
-      roomId: log.device?.room_id || null, // room_id из связанного устройства или null
+      roomName: log.device?.room?.room_name || null, // Получаем room_name через вложенную связь
+      deviceName: log.device?.name || null, // Можем вернуть название устройства
     }));
 
     return {
